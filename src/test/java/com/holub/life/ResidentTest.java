@@ -124,6 +124,11 @@ class ResidentTest {
         }
     }
 
+    @Test
+    void 죽은_셀은_이웃이_6개여도_살아나지_않는다() {
+        assertFalse(aliveAfterOneGeneration(false, 6));
+    }
+
     // ── 도우미: 산 이웃이 liveNeighbors개일 때, 한 세대 뒤 살아 있는가 ──
     private boolean aliveAfterOneGeneration(boolean startsAlive, int liveNeighbors) {
         Resident target = new Resident();                // 검사할 칸
