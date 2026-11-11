@@ -26,6 +26,11 @@ public final class Resident implements Cell
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
 
+	private final RuleHolder holder;
+
+	public Resident()                  { this(new RuleHolder()); }
+	public Resident(RuleHolder holder) { this.holder = holder;   }
+
 	private boolean isStable(){return amAlive == willBeAlive; }
 
 	/** figure the next state.
@@ -58,7 +63,7 @@ public final class Resident implements Cell
 		if( southeast.isAlive()) ++neighbors;
 		if( southwest.isAlive()) ++neighbors;
 
-		willBeAlive = (neighbors==3 || (amAlive && neighbors==2));
+		willBeAlive = holder.current().nextState(amAlive, neighbors);
 		return !isStable();
 	}
 
@@ -104,7 +109,7 @@ public final class Resident implements Cell
 
 	public void	   clear()			{amAlive = willBeAlive = false; }
 	public boolean isAlive()		{return amAlive;			    }
-	public Cell    create()			{return new Resident();			}
+	public Cell    create()			{return new Resident(holder);	}
 	public int 	   widthInCells()	{return 1;}
 
 	public Direction isDisruptiveTo()

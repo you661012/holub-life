@@ -28,6 +28,7 @@ import com.holub.life.Resident;
 
 public class Universe extends JPanel
 {	private 		final Cell  	outermostCell;
+	private 		final RuleHolder ruleHolder = new RuleHolder();
 	private static	final Universe 	theInstance = new Universe();
 
 	/** The default height and width of a Neighborhood in cells.
@@ -57,7 +58,7 @@ public class Universe extends JPanel
 						(	DEFAULT_GRID_SIZE,
 							new Neighborhood
 							(	DEFAULT_GRID_SIZE,
-								new Resident()
+								new Resident(ruleHolder)
 							)
 						);
 
@@ -138,6 +139,23 @@ public class Universe extends JPanel
 		        }
 			}
 		);
+		MenuSite.addLine
+				(	this, "Rule", "Conway (B3/S23)",
+						new ActionListener()
+						{	public void actionPerformed(ActionEvent e)
+						{	ruleHolder.change( new ConwayRule() );
+						}
+						}
+				);
+
+		MenuSite.addLine
+				(	this, "Rule", "HighLife (B36/S23)",
+						new ActionListener()
+						{	public void actionPerformed(ActionEvent e)
+						{	ruleHolder.change( new HighLifeRule() );
+						}
+						}
+				);
 
 		Clock.instance().addClockListener //{=Universe.clock.subscribe}
 		(	new Clock.Listener()
