@@ -129,6 +129,36 @@ class NeighborhoodRuleTest {
         step(board, 1);  assertEquals(horizontal, liveCells(board));
     }
 
+    // ── 결함 재현: 판 전체가 조용할 때 ──
+
+    @Test
+    void 조용해진_판에서도_규칙을_바꾸면_다음_세대부터_반영된다() {
+        // ── 준비: 위 테스트와 같지만 Blinker가 없다. Ship만 있으면 판 전체가 변하지 않는다 ──
+        RuleHolder holder = new RuleHolder();            // 기본값은 Conway
+        Cell board = newBoard(holder);
+
+        click(board, 10, 10);  click(board, 11, 10);
+        click(board, 10, 11);                         click(board, 12, 11);
+                               click(board, 11, 12);  click(board, 12, 12);
+
+        // ── Conway로 3세대: Ship은 그대로. 판에 변하는 세포가 하나도 없다 ──
+        step(board, 3);
+        assertEquals(6, liveCells(board).size());
+
+        // ── 여기서 규칙을 바꾼다 ──
+        holder.change(new HighLifeRule());
+
+        // ── 바꾼 뒤: 올바르게 동작한다면 위 테스트처럼 7칸 → 4칸 → 0칸 ──
+        step(board, 1);
+        assertEquals(7, liveCells(board).size());
+
+        step(board, 1);
+        assertEquals(4, liveCells(board).size());
+
+        step(board, 1);
+        assertEquals(0, liveCells(board).size());
+    }
+
 
     // ───────────────────────── 헬퍼 ─────────────────────────
 

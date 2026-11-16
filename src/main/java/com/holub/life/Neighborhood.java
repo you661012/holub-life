@@ -130,16 +130,6 @@ public final class Neighborhood implements Cell
 		// Is some ajacent neigborhood active on the edge
 		// that ajoins me?
 
-		if(		amActive
-			||	north	 .isDisruptiveTo().the( Direction.SOUTH 	  )
-			||	south	 .isDisruptiveTo().the( Direction.NORTH 	  )
-			||	east	 .isDisruptiveTo().the( Direction.WEST  	  )
-			||	west	 .isDisruptiveTo().the( Direction.EAST  	  )
-			||	northeast.isDisruptiveTo().the( Direction.SOUTHWEST )
-			||	northwest.isDisruptiveTo().the( Direction.SOUTHEAST )
-			||	southeast.isDisruptiveTo().the( Direction.NORTHWEST )
-			||	southwest.isDisruptiveTo().the( Direction.NORTHEAST )
-		)
 		{
 			Cell	northCell,		southCell,
 					eastCell,		westCell,
