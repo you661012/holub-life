@@ -22,7 +22,7 @@ Design Patterns · 2026
 
 [Allen Holub의 Life Game v1.03](https://holub.com/software/life/index.html)을 바탕으로, 기존 기능을 유지하면서 디자인 패턴을 적용해 확장하는 수업 프로젝트입니다.
 
-현재는 **Conway와 HighLife 규칙을 메뉴에서 선택**할 수 있습니다. 앞으로 규칙 직접 입력과 **현재 배치의 결말을 미리 계산하는 기능**을 추가할 예정입니다.
+현재는 **Conway와 HighLife 규칙을 메뉴에서 선택**하거나 **B/S 표기로 규칙을 직접 입력**할 수 있습니다. 앞으로 **현재 배치의 결말을 미리 계산하는 기능**을 추가할 예정입니다.
 
 > 결말 예측은 아직 구현 전입니다. 아래 진행 현황에서 구현된 기능과 계획을 구분합니다.
 
@@ -35,7 +35,7 @@ Design Patterns · 2026
 | Conway / HighLife 규칙 선택 | ✅ 완료 | PR #3 |
 | 판 전체 테스트 — 실제 64×64 판에서 여러 세대 진행 | ✅ 완료 | PR #7 |
 | 알려진 문제 수정 — 판이 정지한 뒤 규칙 변경이 반영되지 않는 문제 | ✅ 완료 | [ADR 002](docs/decisions/002-정지한-판-건너뛰기.md) |
-| 규칙 직접 입력 — B/S 표기, 예: `B36/S23` | 예정 | — |
+| 규칙 직접 입력 — B/S 표기, 예: `B36/S23` | ✅ 완료 | PR #9 |
 | 결말 예측 — 소멸·정지·반복·미확정 | 예정 | — |
 | 상태 표시 — 세대 수·세포 수·현재 규칙·예측 | 예정 | — |
 
@@ -74,14 +74,16 @@ Resident × 4,096
        │ 같은 보관 객체를 공유
        ▼
    RuleHolder ──▶ Rule
-                  ├── ConwayRule   B3/S23
-                  └── HighLifeRule B36/S23
+                  ├── ConwayRule        B3/S23
+                  ├── HighLifeRule      B36/S23
+                  └── BirthSurvivalRule B/S 표기 입력
 ```
 
 | 규칙 | 탄생 조건 | 생존 조건 |
 | :--- | :--- | :--- |
 | Conway | 살아 있는 이웃 3개 | 살아 있는 이웃 2개 또는 3개 |
 | HighLife | 살아 있는 이웃 3개 또는 6개 | 살아 있는 이웃 2개 또는 3개 |
+| 직접 입력 | 살아 있는 이웃 수가 B 뒤의 숫자 중 하나 | 살아 있는 이웃 수가 S 뒤의 숫자 중 하나 |
 
 `RuleHolder`는 Singleton으로 만들지 않고 생성자로 전달합니다. 실행 시에는 세포들이 하나를 공유하고, 테스트에서는 각각 독립된 객체를 사용할 수 있습니다.
 
@@ -90,7 +92,7 @@ Resident × 4,096
 <details>
 <summary>규칙 선택 기능의 변경 범위</summary>
 
-- **추가:** `Rule`, `ConwayRule`, `HighLifeRule`, `RuleHolder`
+- **추가:** `Rule`, `ConwayRule`, `HighLifeRule`, `BirthSurvivalRule`, `RuleHolder`
 - **수정:** `Resident`, `Universe`, `Neighborhood` (정지한 판 문제 수정, [ADR 002](docs/decisions/002-정지한-판-건너뛰기.md))
 - **고치지 않은 클래스:** `Cell`, `Clock`
 
@@ -109,7 +111,7 @@ Resident × 4,096
 
 ## 테스트
 
-**JUnit 테스트 42개 통과.** 기존 동작의 회귀 테스트와 규칙별 판정, 규칙 공유 및 교체, 판 전체의 세대 진행을 검증합니다.
+**JUnit 테스트 51개 통과.** 기존 동작의 회귀 테스트와 규칙별 판정, 규칙 공유 및 교체, 판 전체의 세대 진행을 검증합니다.
 
 - 구조 변경 전에 작성한 `ResidentTest` 9개가 수정 없이 통과합니다.
 - 판 전체 테스트는 실제 64×64 판에서 여러 세대의 결과를 확인합니다.
