@@ -157,6 +157,15 @@ public class Universe extends JPanel
 						}
 				);
 
+		MenuSite.addLine
+				(	this, "Rule", "Custom (B/S)...",
+						new ActionListener()
+						{	public void actionPerformed(ActionEvent e)
+						{	doCustomRule();
+						}
+						}
+				);
+
 		Clock.instance().addClockListener //{=Universe.clock.subscribe}
 		(	new Clock.Listener()
 			{	public void tick()
@@ -219,6 +228,25 @@ public class Universe extends JPanel
 		}
 		catch( IOException theException )
 		{	JOptionPane.showMessageDialog( null, "Write Failed!",
+					"The Game of Life", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	/** B/S 표기를 입력받아 그 규칙으로 바꾼다. 표기가 잘못됐으면 알리고 지금 규칙을 그대로 둔다. */
+	private void doCustomRule()
+	{	String notation = JOptionPane.showInputDialog( null,
+					"Rule in B/S notation (e.g. B36/S23)",
+					"The Game of Life", JOptionPane.QUESTION_MESSAGE);
+
+		if( notation == null )			// 취소를 눌렀다
+			return;
+
+		try
+		{	ruleHolder.change( new BirthSurvivalRule(notation) );
+		}
+		catch( IllegalArgumentException theException )
+		{	JOptionPane.showMessageDialog( null,
+					"Not a valid rule: " + notation + "\nExample: B36/S23",
 					"The Game of Life", JOptionPane.ERROR_MESSAGE);
 		}
 	}
