@@ -127,19 +127,10 @@ public final class Neighborhood implements Cell
 	{
 		boolean	nothingHappened = true;
 
-		// Is some ajacent neigborhood active on the edge
-		// that ajoins me?
+		// 원래 여기에는 이전 세대에 변화가 없으면 계산을 건너뛰는 조건이 있었다.
+		// 그런데 규칙이 바뀌면 이전에 변화가 없었더라도 변화가 있을 수 있다.
+		// 그래서 그 조건을 없애고 매 세대 모든 칸을 계산한다.
 
-		if(		amActive
-			||	north	 .isDisruptiveTo().the( Direction.SOUTH 	  )
-			||	south	 .isDisruptiveTo().the( Direction.NORTH 	  )
-			||	east	 .isDisruptiveTo().the( Direction.WEST  	  )
-			||	west	 .isDisruptiveTo().the( Direction.EAST  	  )
-			||	northeast.isDisruptiveTo().the( Direction.SOUTHWEST )
-			||	northwest.isDisruptiveTo().the( Direction.SOUTHEAST )
-			||	southeast.isDisruptiveTo().the( Direction.NORTHWEST )
-			||	southwest.isDisruptiveTo().the( Direction.NORTHEAST )
-		)
 		{
 			Cell	northCell,		southCell,
 					eastCell,		westCell,
