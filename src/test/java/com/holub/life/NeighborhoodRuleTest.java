@@ -159,6 +159,33 @@ class NeighborhoodRuleTest {
         assertEquals(0, liveCells(board).size());
     }
 
+    // ── 직접 입력한 규칙: Conway도 HighLife도 아닌 Seeds (B2/S) ──
+
+    @Test
+    void 직접_입력한_규칙_B2_S로도_판이_규칙대로_진행한다() {
+        // ── 준비: 규칙을 문자열로 만들어 넣고, 세포 두 칸을 나란히 놓는다 ──
+        RuleHolder holder = new RuleHolder();
+        holder.change(new BirthSurvivalRule("B2/S"));    // 이웃이 2개면 태어나고, 살아 있는 세포는 항상 죽는다
+        Cell board = newBoard(holder);
+
+        click(board, 10, 10);  click(board, 11, 10);
+
+        // ── 1세대: 두 칸은 죽고, 둘 모두와 맞닿은 위 두 칸과 아래 두 칸이 태어난다 ──
+        step(board, 1);
+        assertEquals(
+                Set.of(new Point(10, 9),  new Point(11, 9),
+                       new Point(10, 11), new Point(11, 11)),
+                liveCells(board));
+
+        // ── 2세대: 네 칸은 죽고, 그중 정확히 두 칸과 맞닿은 여섯 칸이 태어난다 (가운데 두 칸은 이웃이 4개라 비어 있다) ──
+        step(board, 1);
+        assertEquals(
+                Set.of(new Point(10, 8),  new Point(11, 8),
+                       new Point(9, 10),  new Point(12, 10),
+                       new Point(10, 12), new Point(11, 12)),
+                liveCells(board));
+    }
+
 
     // ───────────────────────── 헬퍼 ─────────────────────────
 
