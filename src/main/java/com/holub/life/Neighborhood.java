@@ -127,8 +127,11 @@ public final class Neighborhood implements Cell
 	{
 		boolean	nothingHappened = true;
 
-		// Is some ajacent neigborhood active on the edge
-		// that ajoins me?
+		// 원래 여기에는 "이 구역에서도, 맞닿은 옆 구역의 가장자리에서도 변한 세포가 없으면
+		// 계산을 건너뛴다"는 조건이 있었다. 조용해진 판은 이전과 변화가 없으니 이번에도
+		// 같을 것이라 보고 검사 자체를 하지 않은 것이다.
+		// 규칙을 실행 중에 바꿀 수 있게 되면서, 판이 그대로여도 다음 세대가 달라질 수 있게 됐다.
+		// 그래서 그 조건을 없애고 매 세대 모든 칸을 계산한다.
 
 		{
 			Cell	northCell,		southCell,
