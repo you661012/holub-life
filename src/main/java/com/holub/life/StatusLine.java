@@ -80,6 +80,27 @@ public class StatusLine {
         }
     }
 
+    /**
+     * 판이 더는 변하지 않는 결말(소멸, 정지)에 도달했는가. 도달했으면 시계를 더 돌릴 이유가 없다.
+     * 반복은 도달해도 판이 계속 움직이므로 끝난 것으로 보지 않는다. 미확정과 계산 중은 결말을 모르는 상태다.
+     */
+    public boolean isFinished() {
+        if (ending == null) {
+            return false;
+        }
+        boolean stopsChanging = ending.kind() == Ending.Kind.EXTINCT || ending.kind() == Ending.Kind.STILL;
+        return stopsChanging && generationsLeft() <= 0;
+    }
+
+    /**
+     * 예측한 결말까지 남은 세대 수. 0 이하면 이미 도달했다. 결말이 정해졌을 때(ending이 있을 때)만 부른다.
+     * 예측한 뒤로 진행한 세대만큼 줄인다. 같은 규칙으로 진행한 것은 예측한 길을 따라간 것이다.
+     */
+    private long generationsLeft() {
+        long passed = Math.max(0, generation - request.generation());
+        return ending.after() - passed;
+    }
+
     private String ending() {
         if (ending == null) {
             return "calculating...";
@@ -88,9 +109,7 @@ public class StatusLine {
             return "undecided within " + ending.after() + " generations";
         }
 
-        // 예측한 뒤로 진행한 세대만큼 남은 세대를 줄인다. 같은 규칙으로 진행한 것은 예측한 길을 따라간 것이다
-        long passed = Math.max(0, generation - request.generation());
-        long left = ending.after() - passed;
+        long left = generationsLeft();
         String in = (left > 0) ? " in " + left + (left == 1 ? " generation" : " generations") : "";
 
         switch (ending.kind()) {
