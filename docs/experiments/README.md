@@ -35,6 +35,7 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 | `RuleChangeDemo` | 규칙이 바뀐 것을 화면 한 줄에 전하는 세 방법 (자리마다 적기, Observer, 메서드 하나에 모으기) | ADR 004 3절 |
 | `Snapshot` | 한 스레드가 세대를 진행하는 동안 다른 스레드가 판을 읽을 때, 어느 세대의 판도 아닌 판이 읽히는가 (잠금 없음 / 잠금 있음) | ADR 005 2절 |
 | `PredictTime` | `EndingPredictor`(한도 500)로 Blinker, Glider, 무작위 30% 판을 예측하는 시간 | ADR 005 3절 |
+| `StatusCheck` | 창을 화면에 띄우지 않고 클릭·세대 진행·메뉴를 흉내 내며 창 아래 한 줄의 글자를 읽는다. `java -Dapple.awt.UIElement=true`로 실행한다 | ADR 005 7절, ADR 004 5절 |
 | `StaticFieldDemo` | 그냥 필드와 `static` 필드를 두 스레드에서 10만 번씩 올렸을 때의 차이 | ADR 003 4절 |
 
 `screen-check/Screen.java`는 위 명령으로 컴파일되지 않는다. 아래 "화면 쪽 확인"에 따로 적었다.
