@@ -9,4 +9,10 @@ public class HighLifeRule implements Rule {
             || (alive && neighbors == 2)         // 살아 있고 이웃 2개: 생존
             || (!alive && neighbors == 6);       // 죽어 있고 이웃 6개: 탄생 (Conway와 다른 점)
     }
+
+    /** 이 규칙의 B/S 표기. 창 아래 한 줄에 띄운다. */
+    @Override
+    public String toString() {
+        return "B36/S23";
+    }
 }
