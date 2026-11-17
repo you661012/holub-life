@@ -89,21 +89,34 @@ class PredictionWorkerTest {
     @Test
     void 계산이_실패해도_다음_요청은_계산한다() throws InterruptedException {
         PredictionRequest a = request(1), b = request(2);
-        CountDownLatch delivered = new CountDownLatch(1);
+        List<PredictionRequest> computed = Collections.synchronizedList(new ArrayList<>());
         List<PredictionRequest> requests = Collections.synchronizedList(new ArrayList<>());
+        CountDownLatch aStarted = new CountDownLatch(1);
+        CountDownLatch failA = new CountDownLatch(1);
+        CountDownLatch delivered = new CountDownLatch(1);
 
         PredictionWorker worker = new PredictionWorker(
                 r -> {
-                    if (r == a) throw new IllegalStateException("일부러 낸 실패");
+                    computed.add(r);
+                    if (r == a) {
+                        aStarted.countDown();
+                        awaitQuietly(failA);                // 테스트가 신호를 줄 때까지 기다렸다가 실패한다
+                        throw new IllegalStateException("일부러 낸 실패");
+                    }
                     return ANY_ENDING;
                 },
                 (r, e) -> { requests.add(r); delivered.countDown(); });
 
         worker.request(a);
+        // A의 계산이 시작된 것을 확인한 뒤에 B를 보낸다.
+        // 바로 이어서 보내면 A가 시작되기 전에 B가 A를 덮어쓸 수 있고, 그러면 실패하는 경우를 거치지 않고 통과한다.
+        assertTrue(aStarted.await(5, TimeUnit.SECONDS));
         worker.request(b);
+        failA.countDown();
 
         assertTrue(delivered.await(5, TimeUnit.SECONDS));
-        assertEquals(List.of(b), requests);
+        assertEquals(List.of(a, b), computed);              // A도 실제로 계산을 시작했다 (그리고 실패했다)
+        assertEquals(List.of(b), requests);                 // 결과가 전해진 것은 B뿐이다
     }
 
     /** 변경 번호만 다른 요청. 이 테스트에서는 판과 규칙의 내용은 쓰지 않는다. */
