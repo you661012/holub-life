@@ -242,7 +242,12 @@ public class Universe extends JPanel
 						now = readBoard();
 					}
 					// 세대가 넘어간 것은 예측한 길을 따라간 것이다. 다시 예측하지 않고 창 아래의 숫자만 고친다.
-					SwingUtilities.invokeLater( () -> showStatus(now) );
+					SwingUtilities.invokeLater
+					(	() ->
+						{	showStatus(now);
+							stopClockIfFinished();
+						}
+					);
 				}
 			}
 		);
@@ -262,6 +267,16 @@ public class Universe extends JPanel
 	/** 창 아래 두 줄. 세대 수, 세포 수, 규칙과 예측한 결말을 보여 준다. */
 	public JComponent statusBar()
 	{	return statusBar;
+	}
+
+	/**
+	 * 판이 소멸이나 정지에 도달했으면 시계를 멈춘다. 세대가 진행된 뒤에 Swing의 스레드에서 부른다.
+	 * Go 메뉴도 Swing의 스레드에서 시계를 켜고 끄므로, 여기서 끄는 것과 메뉴가 엇갈리지 않는다.
+	 * 한 세대씩 넘기는 Go > Tick은 시계를 켜지 않으므로 그대로 된다.
+	 */
+	private void stopClockIfFinished()
+	{	if( statusLine.isFinished() )
+			Clock.instance().stop();
 	}
 
 	/** statusLine이 만든 글자를 두 글자 칸에 올린다. Swing의 스레드에서 부른다. */

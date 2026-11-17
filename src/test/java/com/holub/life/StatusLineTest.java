@@ -149,6 +149,62 @@ class StatusLineTest {
                                           StatusLine.REPEATING_COLOR, StatusLine.UNKNOWN_COLOR).size());
     }
 
+    // ── 자동 정지: 더는 변하지 않는 결말(소멸, 정지)에 도달했는가 ──
+
+    @Test
+    void 소멸에_도달하면_끝난_것이다() {
+        StatusLine line = new StatusLine();
+        line.update(10, 3, "B3/S23", 1);
+        line.accept(request(10, 1), new Ending(Ending.Kind.EXTINCT, 2, 0));
+        assertFalse(line.isFinished());          // 아직 2세대 남았다
+
+        line.update(11, 2, "B3/S23", 1);
+        assertFalse(line.isFinished());          // 1세대 남았다
+
+        line.update(12, 0, "B3/S23", 1);
+        assertTrue(line.isFinished());           // 도달했다
+    }
+
+    @Test
+    void 정지에_도달하면_끝난_것이다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 4, "B3/S23", 1);
+        line.accept(request(0, 1), new Ending(Ending.Kind.STILL, 0, 1));   // 처음부터 멈춘 모양
+
+        assertTrue(line.isFinished());
+    }
+
+    @Test
+    void 반복은_도달해도_끝난_것이_아니다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 3, "B3/S23", 1);
+        line.accept(request(0, 1), new Ending(Ending.Kind.REPEATING, 0, 2));   // 판이 계속 움직인다
+
+        assertFalse(line.isFinished());
+    }
+
+    @Test
+    void 미확정과_계산_중은_끝난_것이_아니다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 1230, "B3/S23", 1);
+        assertFalse(line.isFinished());          // 계산 중
+
+        line.accept(request(0, 1), new Ending(Ending.Kind.UNDECIDED, 500, 0));
+        line.update(600, 400, "B3/S23", 1);
+        assertFalse(line.isFinished());          // 미확정은 세대가 지나도 끝났다고 하지 않는다
+    }
+
+    @Test
+    void 끝난_뒤에_판이나_규칙이_바뀌면_다시_끝난_것이_아니다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 4, "B3/S23", 1);
+        line.accept(request(0, 1), new Ending(Ending.Kind.STILL, 0, 1));
+        assertTrue(line.isFinished());
+
+        line.update(0, 5, "B3/S23", 2);          // 클릭
+        assertFalse(line.isFinished());
+    }
+
     private static PredictionRequest request(long generation, long change) {
         return new PredictionRequest(new Generation(Set.of(), 64), new ConwayRule(), generation, change);
     }
