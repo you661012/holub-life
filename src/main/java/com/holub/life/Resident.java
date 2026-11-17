@@ -83,7 +83,9 @@ public final class Resident implements Cell
 	}
 
 	public boolean transition()
-	{	boolean changed = isStable();
+	{	// 원본은 isStable()을 그대로 돌려줘서 "안 바뀌었으면 true"였다.
+		// Cell.transition()의 주석은 "바뀌었으면 true"라서 거기에 맞췄다.
+		boolean changed = !isStable();
 		amAlive = willBeAlive;
 		return changed;
 	}

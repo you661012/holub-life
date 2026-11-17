@@ -186,6 +186,29 @@ class NeighborhoodRuleTest {
                 liveCells(board));
     }
 
+    @Test
+    void 모든_칸이_한꺼번에_바뀌는_세대에도_판의_transition은_true를_돌려준다() {
+        // B0/S: 이웃이 0개인 빈 칸에서도 태어나고, 살아 있는 칸은 모두 죽는다. 빈 판 → 4096칸 전부 → 빈 판.
+        // Universe의 tick()은 판의 transition()이 true일 때만 화면을 다시 그린다.
+        RuleHolder holder = new RuleHolder();
+        holder.change(new BirthSurvivalRule("B0/S"));
+        Cell board = newBoard(holder);
+
+        // ── 1세대: 빈 판 → 4096칸. 모든 칸이 바뀐다 ──
+        board.figureNextState(
+                Cell.DUMMY, Cell.DUMMY, Cell.DUMMY, Cell.DUMMY,
+                Cell.DUMMY, Cell.DUMMY, Cell.DUMMY, Cell.DUMMY);
+        assertTrue(board.transition());
+        assertEquals(4096, liveCells(board).size());
+
+        // ── 2세대: 4096칸 → 빈 판. 다시 모든 칸이 바뀐다 ──
+        board.figureNextState(
+                Cell.DUMMY, Cell.DUMMY, Cell.DUMMY, Cell.DUMMY,
+                Cell.DUMMY, Cell.DUMMY, Cell.DUMMY, Cell.DUMMY);
+        assertTrue(board.transition());
+        assertEquals(0, liveCells(board).size());
+    }
+
 
     // ───────────────────────── 헬퍼 ─────────────────────────
 
