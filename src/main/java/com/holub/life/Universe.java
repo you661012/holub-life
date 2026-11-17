@@ -268,6 +268,7 @@ public class Universe extends JPanel
 	private void showStatusText()
 	{	stateLabel.setText ( statusLine.stateText()  );
 		endingLabel.setText( statusLine.endingText() );
+		endingLabel.setForeground( statusLine.endingColor() );
 	}
 
 	/** 규칙을 바꾼다. 규칙을 바꾸는 곳은 모두 이 메서드를 거친다. 그래야 다시 예측하는 것이 빠지지 않는다 (ADR 004). */

@@ -41,7 +41,9 @@ public class StatusCheck {
 
     /** 두 줄의 글자를 " | "로 이어서 돌려준다. */
     static String text() {
-        return ((JLabel) bar.getComponent(0)).getText() + " | " + ((JLabel) bar.getComponent(1)).getText();
+        Color c = bar.getComponent(1).getForeground();
+        return ((JLabel) bar.getComponent(0)).getText() + " | " + ((JLabel) bar.getComponent(1)).getText()
+                + "  [글자색 " + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "]";
     }
 
     static void click(int x, int y) throws Exception {

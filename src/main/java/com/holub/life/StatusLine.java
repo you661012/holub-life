@@ -1,12 +1,21 @@
 package com.holub.life;
 
+import java.awt.Color;
+
 /**
  * 창 아래 두 줄에 띄울 글자를 만든다. 윗줄은 세대 수, 세포 수, 규칙. 아랫줄은 예측한 결말.
  * 한 줄에 다 넣으면 창 너비(512px)를 넘어 끝이 잘려서 둘로 나눴다.
- * Swing을 쓰지 않는다. 글자를 실제로 화면에 올리는 것은 Universe가 한다.
+ * Swing을 쓰지 않는다. 글자와 색을 실제로 화면에 올리는 것은 Universe가 한다.
  * 스레드 하나(Swing 스레드)에서만 부른다.
  */
 public class StatusLine {
+
+    // 아랫줄(결말)의 글자색. 결말의 종류가 바뀐 것이 글자를 읽기 전에 색으로 먼저 보이게 한다.
+    // 밝은 회색 바탕에서 읽히도록 어두운 색으로 골랐다.
+    public static final Color EXTINCT_COLOR   = new Color(180, 0, 0);       // 소멸: 빨강
+    public static final Color STILL_COLOR     = new Color(0, 70, 170);      // 정지: 파랑
+    public static final Color REPEATING_COLOR = new Color(0, 120, 0);       // 반복: 초록
+    public static final Color UNKNOWN_COLOR   = new Color(110, 110, 110);   // 미확정, 계산 중: 회색
 
     private long generation;             // 지금 세대 번호
     private int cells;                   // 살아 있는 칸 수
@@ -52,6 +61,23 @@ public class StatusLine {
     /** 아랫줄: 예측한 결말. */
     public String endingText() {
         return "Ending: " + ending();
+    }
+
+    /** 아랫줄의 글자색. 결말의 종류로 정한다. 아직 그 세대에 이르지 않았어도 같은 색이다. */
+    public Color endingColor() {
+        if (ending == null) {
+            return UNKNOWN_COLOR;
+        }
+        switch (ending.kind()) {
+            case EXTINCT:
+                return EXTINCT_COLOR;
+            case STILL:
+                return STILL_COLOR;
+            case REPEATING:
+                return REPEATING_COLOR;
+            default:   // UNDECIDED
+                return UNKNOWN_COLOR;
+        }
     }
 
     private String ending() {

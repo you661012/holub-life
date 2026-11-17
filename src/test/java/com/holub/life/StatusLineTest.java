@@ -115,6 +115,40 @@ class StatusLineTest {
         assertEquals("Ending: still", line.endingText());
     }
 
+    // ── 아랫줄의 글자색 ──
+
+    @Test
+    void 결말의_종류마다_글자색이_다르다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 6, "B3/S23", 1);
+
+        line.accept(request(0, 1), new Ending(Ending.Kind.EXTINCT, 3, 0));
+        assertEquals(StatusLine.EXTINCT_COLOR, line.endingColor());
+
+        line.accept(request(0, 1), new Ending(Ending.Kind.STILL, 3, 1));
+        assertEquals(StatusLine.STILL_COLOR, line.endingColor());
+
+        line.accept(request(0, 1), new Ending(Ending.Kind.REPEATING, 3, 2));
+        assertEquals(StatusLine.REPEATING_COLOR, line.endingColor());
+
+        line.accept(request(0, 1), new Ending(Ending.Kind.UNDECIDED, 500, 0));
+        assertEquals(StatusLine.UNKNOWN_COLOR, line.endingColor());
+    }
+
+    @Test
+    void 계산_중일_때의_글자색은_미확정과_같다() {
+        StatusLine line = new StatusLine();
+        line.update(0, 3, "B3/S23", 1);
+
+        assertEquals(StatusLine.UNKNOWN_COLOR, line.endingColor());
+    }
+
+    @Test
+    void 네_가지_색은_서로_다르다() {
+        assertEquals(4, java.util.Set.of(StatusLine.EXTINCT_COLOR, StatusLine.STILL_COLOR,
+                                          StatusLine.REPEATING_COLOR, StatusLine.UNKNOWN_COLOR).size());
+    }
+
     private static PredictionRequest request(long generation, long change) {
         return new PredictionRequest(new Generation(Set.of(), 64), new ConwayRule(), generation, change);
     }
