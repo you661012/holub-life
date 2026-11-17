@@ -10,7 +10,10 @@ import java.util.Map;
  */
 public class EndingPredictor {
 
-    private final int limit;   // 최대 몇 세대까지 미리 돌려 볼지
+    // 최대 몇 세대까지 미리 돌려 볼지.
+    // 빈 판을 만나면 그 판이 계속 비어 있는지 보려고 다음 세대를 계산한다. 이 확인용 계산은 여기에 넣지 않는다.
+    // 한도 세대에 판이 비었을 때도 소멸인지 확정할 수 있게 하려는 것이다.
+    private final int limit;
 
     public EndingPredictor(int limit) {
         this.limit = limit;
@@ -22,8 +25,9 @@ public class EndingPredictor {
         Generation current = start;
 
         for (int n = 0; ; n++) {                             // n: 지금 보고 있는 것이 몇 세대 뒤인지
-            // 빈 판도 "더는 변하지 않는 모양"이지만 정지가 아니라 소멸로 답한다. 그래서 비었는지를 먼저 본다.
-            if (current.liveCells().isEmpty()) {
+            // 빈 판이 다음 세대에도 빈 판일 때만 소멸이다. 이웃이 0개여도 태어나는 규칙(B0)에서는 빈 판에서 모든 칸이 태어난다.
+            // 비어서 멈춘 판은 "더는 변하지 않는 모양"이기도 하지만 정지가 아니라 소멸로 답한다. 그래서 이것을 먼저 본다.
+            if (current.isEmpty() && current.next(rule).isEmpty()) {
                 return new Ending(Ending.Kind.EXTINCT, n, 0);
             }
 

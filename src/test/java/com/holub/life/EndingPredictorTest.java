@@ -36,6 +36,17 @@ class EndingPredictorTest {
         assertEquals(1, ending.after());
     }
 
+    @Test
+    void 빈_판에서도_태어나는_규칙이면_빈_판은_소멸이_아니다() {
+        // B0: 이웃이 0개인 빈 칸에서도 태어난다. 빈 판 → 4096칸 전부 → 빈 판 → … 으로 되풀이된다.
+        // (같은 것을 실제 Neighborhood 판에서 돌려 0 → 4096 → 0 → 4096칸인 것을 확인했다)
+        Ending ending = predictor.predict(generation(), new BirthSurvivalRule("B0/S"));
+
+        assertEquals(Ending.Kind.REPEATING, ending.kind());
+        assertEquals(0, ending.after());
+        assertEquals(2, ending.period());
+    }
+
     // ── 정지 ──
 
     @Test
@@ -113,6 +124,16 @@ class EndingPredictorTest {
 
         assertEquals(Ending.Kind.UNDECIDED, ending.kind());
         assertEquals(100, ending.after());
+    }
+
+    @Test
+    void 소멸은_한도_세대에_판이_비어도_알_수_있다() {
+        // 한 칸은 1세대에 사라진다. 한도가 1이어도 소멸로 답한다.
+        // 빈 판이 계속 비어 있는지 보는 확인용 계산은 한도에 넣지 않기 때문이다.
+        Ending ending = new EndingPredictor(1).predict(generation(10, 10), new ConwayRule());
+
+        assertEquals(Ending.Kind.EXTINCT, ending.kind());
+        assertEquals(1, ending.after());
     }
 
     @Test
