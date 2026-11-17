@@ -29,6 +29,32 @@ import com.holub.life.Resident;
 public class Universe extends JPanel
 {	private 		final Cell  	outermostCell;
 	private 		final RuleHolder ruleHolder = new RuleHolder();
+
+	// 판과 규칙을 바꾸거나 읽는 곳은 모두 이 잠금을 잡는다 (ADR 005).
+	// 세대 진행은 Clock의 스레드에서, 클릭과 메뉴는 Swing의 스레드에서 실행되기 때문이다.
+	private final Object boardLock = new Object();
+	private long generationNumber = 0;	// 지금 몇 세대째인가. boardLock을 잡고 쓴다
+	private long changeNumber = 0;		// 클릭, Clear, Load, 규칙 변경 때 올린다. boardLock을 잡고 쓴다
+
+	/** 결말을 예측할 때 최대 몇 세대까지 미리 돌려 볼지. */
+	private static final int PREDICTION_LIMIT = 500;
+
+	private final EndingPredictor predictor = new EndingPredictor(PREDICTION_LIMIT);
+
+	private final StatusLine statusLine  = new StatusLine();	// 창 아래 한 줄의 글자를 만든다. Swing의 스레드에서만 쓴다
+	private final JLabel	 statusLabel = new JLabel(" ");		// 창 아래 한 줄. Life가 창에 붙인다
+
+	// 예측은 작업자 스레드가 계산한다. 끝나면 결과를 Swing의 스레드로 넘겨 창 아래 한 줄에 반영한다.
+	private final PredictionWorker worker = new PredictionWorker
+			(	request -> predictor.predict( request.start(), request.rule() ),
+				(request, ending) -> SwingUtilities.invokeLater
+				(	() ->
+					{	statusLine.accept( request, ending );
+						statusLabel.setText( statusLine.text() );
+					}
+				)
+			);
+
 	private static	final Universe 	theInstance = new Universe();
 
 	/** The default height and width of a Neighborhood in cells.
@@ -98,8 +124,14 @@ public class Universe extends JPanel
 				{	Rectangle bounds = getBounds();
 					bounds.x = 0;
 					bounds.y = 0;
-					outermostCell.userClicked(e.getPoint(),bounds);
+
+					PredictionRequest request;
+					synchronized( boardLock )
+					{	outermostCell.userClicked(e.getPoint(),bounds);
+						request = readBoardAfterChange();
+					}
 					repaint();
+					predictAgain( request );
 				}
 			}
 		);
@@ -107,8 +139,14 @@ public class Universe extends JPanel
 		MenuSite.addLine( this, "Grid", "Clear",
 			new ActionListener()
 			{	public void actionPerformed(ActionEvent e)
-				{	outermostCell.clear();
+				{	PredictionRequest request;
+					synchronized( boardLock )
+					{	outermostCell.clear();
+						generationNumber = 0;
+						request = readBoardAfterChange();
+					}
 					repaint();
+					predictAgain( request );
 				}
 			}
 		);
@@ -143,7 +181,7 @@ public class Universe extends JPanel
 				(	this, "Rule", "Conway (B3/S23)",
 						new ActionListener()
 						{	public void actionPerformed(ActionEvent e)
-						{	ruleHolder.change( new ConwayRule() );
+						{	changeRule( new ConwayRule() );
 						}
 						}
 				);
@@ -152,7 +190,7 @@ public class Universe extends JPanel
 				(	this, "Rule", "HighLife (B36/S23)",
 						new ActionListener()
 						{	public void actionPerformed(ActionEvent e)
-						{	ruleHolder.change( new HighLifeRule() );
+						{	changeRule( new HighLifeRule() );
 						}
 						}
 				);
@@ -169,17 +207,76 @@ public class Universe extends JPanel
 		Clock.instance().addClockListener //{=Universe.clock.subscribe}
 		(	new Clock.Listener()
 			{	public void tick()
-				{	if( outermostCell.figureNextState
-						   ( Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,
-							 Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY
-						   )
-					  )
-					{	if( outermostCell.transition() )
-							refreshNow();
+				{	// 한 세대의 계산과 반영을 한 잠금 안에서 한다. 그 사이에 규칙이나 판이 바뀌지 않는다.
+					final PredictionRequest now;
+					synchronized( boardLock )
+					{	if( outermostCell.figureNextState
+							   ( Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,
+								 Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY
+							   )
+						  )
+						{	if( outermostCell.transition() )
+								refreshNow();
+						}
+						++generationNumber;
+						now = readBoard();
 					}
+					// 세대가 넘어간 것은 예측한 길을 따라간 것이다. 다시 예측하지 않고 한 줄의 숫자만 고친다.
+					SwingUtilities.invokeLater( () -> showStatus(now) );
 				}
 			}
 		);
+
+		final PredictionRequest first;
+		synchronized( boardLock )
+		{	first = readBoard();
+		}
+		SwingUtilities.invokeLater( () -> predictAgain(first) );
+	}
+
+	/** 창 아래 한 줄. 세대 수, 세포 수, 규칙, 예측한 결말을 보여 준다. */
+	public JComponent statusLabel()
+	{	return statusLabel;
+	}
+
+	/** 규칙을 바꾼다. 규칙을 바꾸는 곳은 모두 이 메서드를 거친다. 그래야 다시 예측하는 것이 빠지지 않는다 (ADR 004). */
+	private void changeRule( Rule rule )
+	{	PredictionRequest request;
+		synchronized( boardLock )
+		{	ruleHolder.change( rule );
+			request = readBoardAfterChange();
+		}
+		predictAgain( request );
+	}
+
+	/** 지금의 판, 규칙, 세대 번호, 변경 번호를 함께 읽는다. boardLock을 잡은 채로 부른다. */
+	private PredictionRequest readBoard()
+	{	LiveCellCollector collector = new LiveCellCollector();
+		outermostCell.transfer( collector, new Point(0,0), Cell.STORE );	// STORE: 판 → collector (읽기)
+
+		return new PredictionRequest
+				(	new Generation( collector.cells(), outermostCell.widthInCells() ),
+					ruleHolder.current(), generationNumber, changeNumber
+				);
+	}
+
+	/** 판이나 규칙을 바꾼 직후에 부른다. 변경 번호를 올리고 바뀐 상태를 읽는다. boardLock을 잡은 채로 부른다. */
+	private PredictionRequest readBoardAfterChange()
+	{	++changeNumber;
+		return readBoard();
+	}
+
+	/** 창 아래 한 줄을 이 상태로 고치고, 이 상태로 결말을 다시 예측하게 한다. Swing의 스레드에서 부른다. */
+	private void predictAgain( PredictionRequest request )
+	{	showStatus( request );
+		worker.request( request );		// 계산은 작업자 스레드가 한다. 여기서는 기다리지 않는다
+	}
+
+	/** 창 아래 한 줄을 이 상태로 고친다. Swing의 스레드에서 부른다. */
+	private void showStatus( PredictionRequest state )
+	{	statusLine.update( state.generation(), state.start().liveCount(),
+							state.rule().toString(), state.change() );
+		statusLabel.setText( statusLine.text() );
 	}
 
 	/** Singleton Accessor. The Universe object itself is manufactured
@@ -191,17 +288,30 @@ public class Universe extends JPanel
 	}
 
 	private void doLoad()
-	{	try
+	{	PredictionRequest request = null;	// 판을 건드리지 않고 끝나면 null로 남는다
+		try
 		{
 			FileInputStream in = new FileInputStream(
 			   Files.userSelected(".",".life","Life File","Load"));
 
 			Clock.instance().stop();		// stop the game and
-			outermostCell.clear();			// clear the board.
 
-			Storable memento = outermostCell.createMemento();
+			// stop()은 이미 돌고 있는 세대가 끝나기를 기다리지 않는다. 그래서 판을 건드릴 때는 잠금을 잡는다.
+			// 파일을 읽는 동안에는 잠금을 잡지 않는다.
+			Storable memento;
+			synchronized( boardLock )
+			{	outermostCell.clear();			// clear the board.
+				memento = outermostCell.createMemento();
+				generationNumber = 0;
+				request = readBoardAfterChange();
+			}
+
 			memento.load( in );
-			outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
+
+			synchronized( boardLock )
+			{	outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
+				request = readBoardAfterChange();
+			}
 
 			in.close();
 		}
@@ -210,6 +320,8 @@ public class Universe extends JPanel
 					"The Game of Life", JOptionPane.ERROR_MESSAGE);
 		}
 		repaint();
+		if( request != null )
+			predictAgain( request );
 	}
 
 	private void doStore()
@@ -220,8 +332,11 @@ public class Universe extends JPanel
 
 			Clock.instance().stop();		// stop the game
 
-			Storable memento = outermostCell.createMemento();
-			outermostCell.transfer( memento, new Point(0,0), Cell.STORE );
+			Storable memento;
+			synchronized( boardLock )		// 세대가 넘어가는 도중의 판을 저장하지 않게 한다
+			{	memento = outermostCell.createMemento();
+				outermostCell.transfer( memento, new Point(0,0), Cell.STORE );
+			}
 			memento.flush(out);
 
 			out.close();
@@ -242,7 +357,7 @@ public class Universe extends JPanel
 			return;
 
 		try
-		{	ruleHolder.change( new BirthSurvivalRule(notation) );
+		{	changeRule( new BirthSurvivalRule(notation) );
 		}
 		catch( IllegalArgumentException theException )
 		{	JOptionPane.showMessageDialog( null,
