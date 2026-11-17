@@ -36,6 +36,8 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 | `Snapshot` | 한 스레드가 세대를 진행하는 동안 다른 스레드가 판을 읽을 때, 어느 세대의 판도 아닌 판이 읽히는가 (잠금 없음 / 잠금 있음) | ADR 005 2절 |
 | `PredictTime` | `EndingPredictor`(한도 500)로 Blinker, Glider, 무작위 30% 판을 예측하는 시간 | ADR 005 3절 |
 | `StatusCheck` | 창을 화면에 띄우지 않고 클릭·세대 진행·메뉴를 흉내 내며 창 아래 한 줄의 글자를 읽는다. `java -Dapple.awt.UIElement=true`로 실행한다 | ADR 005 7절, ADR 004 5절 |
+| `Flicker` | 창을 띄우지 않고 클릭 5번을 흉내 내, 창의 배치가 무효가 된 횟수와 판의 크기가 바뀐 횟수를 센다. `java -Dapple.awt.UIElement=true`로 실행한다. 인자를 하나 주면 상태 표시를 창에 붙이지 않는다 | 확장 2 문서 4-1절 |
+| `Fit` | 가장 긴 글자를 넣었을 때 상태 표시 두 줄이 창 너비 안에 들어가는지 잰다. `java -Dapple.awt.UIElement=true`로 실행한다 | 확장 2 문서 4-1절 |
 | `StaticFieldDemo` | 그냥 필드와 `static` 필드를 두 스레드에서 10만 번씩 올렸을 때의 차이 | ADR 003 4절 |
 
 `screen-check/Screen.java`는 위 명령으로 컴파일되지 않는다. 아래 "화면 쪽 확인"에 따로 적었다.
@@ -48,6 +50,7 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 - `Exp`의 `predict()`는 빈 판을 바로 소멸로 본다. `B0`가 든 규칙에서는 틀린다. 저장소의 `EndingPredictor`는 이것을 고쳤다. `Exp`와 `Exp4`는 Conway, HighLife, `B2/S`로만 돌렸으므로 결과에는 영향이 없다.
 - 스레드 실험(`Exp`의 4번, `Exp2`, `StaticFieldDemo`, `Snapshot`)은 실행마다 결과가 달라진다. 정상인 값이 나오는 실행이 있어도 경쟁 문제가 없다는 뜻은 아니다. 문서에 적은 실행에서는 `nestingLevel`이 20번 중 20번, `readingPermitted`가 20번 중 12번 틀어졌다.
 - `B0`와 `Refresh`는 지금 코드(고친 뒤)로 돌리면 문서에 적은 "고치기 전"의 결과가 나오지 않는다. 고치기 전의 결과를 보려면 해당 커밋 앞의 코드로 돌려야 한다 (`B0`는 `e42f9eb` 앞, `Refresh`는 `8efe048` 앞).
+- `Flicker`에서 믿을 수 있는 것은 "창이 기본 크기일 때"의 줄이다. 창을 띄우지 않으면 Swing이 배치를 스스로 다시 하지 않아서, 이 코드가 클릭마다 직접 다시 배치시킨다. 창을 키운 줄은 그 때문에 상태 표시가 있든 없든 같은 숫자가 나온다. 번쩍임 자체는 이 코드로 볼 수 없고 실제 창에서 봐야 한다.
 - ADR 002의 측정(2026-11-16, `Rule.nextState()`가 불린 횟수와 세대당 시간)에 쓴 코드는 남아 있지 않다.
 
 ## 화면 쪽 확인 (`screen-check/Screen.java`)

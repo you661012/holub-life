@@ -1,7 +1,8 @@
 package com.holub.life;
 
 /**
- * 창 아래 한 줄에 띄울 글자를 만든다: 세대 수, 세포 수, 규칙, 예측한 결말.
+ * 창 아래 두 줄에 띄울 글자를 만든다. 윗줄은 세대 수, 세포 수, 규칙. 아랫줄은 예측한 결말.
+ * 한 줄에 다 넣으면 창 너비(512px)를 넘어 끝이 잘려서 둘로 나눴다.
  * Swing을 쓰지 않는다. 글자를 실제로 화면에 올리는 것은 Universe가 한다.
  * 스레드 하나(Swing 스레드)에서만 부른다.
  */
@@ -43,11 +44,17 @@ public class StatusLine {
         this.ending = ending;
     }
 
-    public String text() {
-        return "Generation " + generation + " | Cells " + cells + " | Rule " + rule + " | Ending: " + endingText();
+    /** 윗줄: 세대 수, 세포 수, 규칙. */
+    public String stateText() {
+        return "Generation " + generation + " | Cells " + cells + " | Rule " + rule;
     }
 
-    private String endingText() {
+    /** 아랫줄: 예측한 결말. */
+    public String endingText() {
+        return "Ending: " + ending();
+    }
+
+    private String ending() {
         if (ending == null) {
             return "calculating...";
         }

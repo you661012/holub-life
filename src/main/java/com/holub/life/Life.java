@@ -29,7 +29,7 @@ public final class Life extends JFrame
 		setDefaultCloseOperation	( EXIT_ON_CLOSE 		);
 		getContentPane().setLayout	( new BorderLayout()	);
 		getContentPane().add( Universe.instance(), BorderLayout.CENTER); //{=life.java.install}
-		getContentPane().add( Universe.instance().statusLabel(), BorderLayout.SOUTH);	// 창 아래 한 줄
+		getContentPane().add( Universe.instance().statusBar(), BorderLayout.SOUTH);	// 창 아래 두 줄 (상태, 예측한 결말)
 
 		pack();
 		setVisible( true );

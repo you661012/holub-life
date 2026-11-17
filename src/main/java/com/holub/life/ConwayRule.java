@@ -8,7 +8,7 @@ public class ConwayRule implements Rule {
         return neighbors == 3 || (alive && neighbors == 2);
     }
 
-    /** 이 규칙의 B/S 표기. 창 아래 한 줄에 띄운다. */
+    /** 이 규칙의 B/S 표기. 창 아래에 띄운다. */
     @Override
     public String toString() {
         return "B3/S23";

@@ -27,7 +27,7 @@ public class BirthSurvivalRule implements Rule {
         return birth.contains("" + neighbors);          // 죽어 있음: B 숫자들 안에 이웃 수가 있으면 탄생
     }
 
-    /** 입력받은 B/S 표기. 창 아래 한 줄에 띄운다. */
+    /** 입력받은 B/S 표기. 창 아래에 띄운다. */
     @Override
     public String toString() {
         return "B" + birth + "/S" + survival;
