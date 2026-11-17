@@ -36,7 +36,7 @@ Design Patterns · 2026
 | 규칙 직접 입력 — B/S 표기, 예: `B36/S23` | ✅ 완료 | PR #9 |
 | 결말 예측 — 소멸·정지·반복·미확정 | ✅ 완료 | [PR #10](https://github.com/you661012/holub-life/pull/10) · [ADR 003](docs/decisions/003-판을-미리-돌리는-방법.md) |
 | 상태 표시 — 세대 수·세포 수·현재 규칙·예측 | ✅ 완료 | [PR #10](https://github.com/you661012/holub-life/pull/10) · [ADR 004](docs/decisions/004-규칙이-바뀌면-다시-예측하게-하는-방법.md), [ADR 005](docs/decisions/005-예측의-입력과-계산을-다루는-방법.md) |
-| 자동 정지 — 소멸·정지에 도달하면 시계를 멈춤 | ✅ 완료 | [확장 2 문서](docs/features/확장2-결말-예측.md) |
+| 자동 정지 — 소멸·정지에 도달하면 시계를 멈춤 | ✅ 완료 | [PR #13](https://github.com/you661012/holub-life/pull/13) · [확장 2 문서](docs/features/확장2-결말-예측.md) |
 
 **일정** · 코드 동결 11/23 · 제출 11/29
 
