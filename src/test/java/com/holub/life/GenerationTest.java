@@ -81,6 +81,29 @@ class GenerationTest {
     }
 
     @Test
+    void 넘겨준_좌표를_나중에_고쳐도_Generation은_바뀌지_않는다() {
+        // java.awt.Point는 x, y를 고칠 수 있는 객체다. 넘겨준 쪽이 나중에 그 Point를 고치는 경우.
+        Point mine = new Point(10, 10);
+        Set<Point> given = new HashSet<>();
+        given.add(mine);
+        Generation now = new Generation(given, WIDTH);
+
+        mine.x = 20;
+
+        assertEquals(cells(10, 10), now.liveCells());
+    }
+
+    @Test
+    void liveCells로_꺼낸_좌표를_고쳐도_Generation은_바뀌지_않는다() {
+        Generation now = new Generation(cells(10, 10), WIDTH);
+
+        Point taken = now.liveCells().iterator().next();
+        taken.x = 20;
+
+        assertEquals(cells(10, 10), now.liveCells());
+    }
+
+    @Test
     void 판_밖의_좌표로는_만들_수_없다() {
         assertThrows(IllegalArgumentException.class, () -> new Generation(cells(64, 10), WIDTH));   // x는 0~63
         assertThrows(IllegalArgumentException.class, () -> new Generation(cells(10, -1), WIDTH));   // y는 0~63

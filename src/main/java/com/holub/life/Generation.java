@@ -20,12 +20,16 @@ public class Generation {
      * @throws IllegalArgumentException 판 밖의 좌표가 들어 있을 때
      */
     public Generation(Set<Point> liveCells, int width) {
+        Set<Point> copies = new HashSet<>();
         for (Point cell : liveCells) {
             if (cell.x < 0 || cell.x >= width || cell.y < 0 || cell.y >= width) {
                 throw new IllegalArgumentException("판 밖의 좌표입니다: (" + cell.x + ", " + cell.y + ")");
             }
+            // 집합만이 아니라 좌표 객체도 복사한다. Point는 x, y를 고칠 수 있는 객체라서,
+            // 그대로 들고 있으면 넘겨준 쪽이 나중에 Point를 고칠 때 이 Generation도 바뀐다.
+            copies.add(new Point(cell));
         }
-        this.liveCells = Set.copyOf(liveCells);   // 복사해 둔다. 넘겨준 쪽이 나중에 집합을 고쳐도 영향받지 않는다
+        this.liveCells = copies;
         this.width = width;
     }
 
@@ -62,9 +66,18 @@ public class Generation {
         return count;
     }
 
-    /** 살아 있는 칸들의 좌표. 고칠 수 없는 집합이다. */
+    /** 살아 있는 칸들의 좌표. 복사본을 돌려주므로 받은 쪽이 고쳐도 이 Generation은 바뀌지 않는다. */
     public Set<Point> liveCells() {
-        return liveCells;
+        Set<Point> copies = new HashSet<>();
+        for (Point cell : liveCells) {
+            copies.add(new Point(cell));
+        }
+        return copies;
+    }
+
+    /** 살아 있는 칸이 하나도 없는가. */
+    public boolean isEmpty() {
+        return liveCells.isEmpty();
     }
 
     /** 판 크기와 살아 있는 칸들이 같으면 같은 Generation이다. */
