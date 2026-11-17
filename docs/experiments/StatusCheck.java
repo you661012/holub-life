@@ -4,9 +4,9 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
 
-/** 창을 화면에 띄우지 않고 Life가 하는 것처럼 만든 뒤, 클릭·세대 진행·메뉴를 흉내 내며 창 아래 한 줄을 읽는다. */
+/** 창을 화면에 띄우지 않고 Life가 하는 것처럼 만든 뒤, 클릭·세대 진행·메뉴를 흉내 내며 창 아래 두 줄을 읽는다. */
 public class StatusCheck {
-    static JLabel label;
+    static JComponent bar;
     static JFrame frame;
 
     public static void main(String[] a) throws Exception {
@@ -15,8 +15,8 @@ public class StatusCheck {
             MenuSite.establish(frame);
             frame.getContentPane().setLayout(new BorderLayout());
             frame.getContentPane().add(Universe.instance(), BorderLayout.CENTER);
-            label = (JLabel) Universe.instance().statusLabel();
-            frame.getContentPane().add(label, BorderLayout.SOUTH);
+            bar = Universe.instance().statusBar();
+            frame.getContentPane().add(bar, BorderLayout.SOUTH);
             frame.pack();
         });
         show("처음");
@@ -37,6 +37,13 @@ public class StatusCheck {
         menu("Grid", "Clear");
         show("Grid > Clear");
         System.exit(0);
+    }
+
+    /** 두 줄의 글자를 " | "로 이어서 돌려준다. */
+    static String text() {
+        Color c = bar.getComponent(1).getForeground();
+        return ((JLabel) bar.getComponent(0)).getText() + " | " + ((JLabel) bar.getComponent(1)).getText()
+                + "  [글자색 " + c.getRed() + "," + c.getGreen() + "," + c.getBlue() + "]";
     }
 
     static void click(int x, int y) throws Exception {
@@ -63,10 +70,10 @@ public class StatusCheck {
 
     static void show(String what) throws Exception {
         final String[] first = new String[1];
-        SwingUtilities.invokeAndWait(() -> first[0] = label.getText());
+        SwingUtilities.invokeAndWait(() -> first[0] = text());
         Thread.sleep(3000);                                   // 작업자가 계산을 끝낼 시간
         final String[] later = new String[1];
-        SwingUtilities.invokeAndWait(() -> later[0] = label.getText());
+        SwingUtilities.invokeAndWait(() -> later[0] = text());
         System.out.println("[" + what + "]\n   바로: " + first[0] + "\n   3초 뒤: " + later[0]);
     }
 }

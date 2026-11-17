@@ -41,16 +41,36 @@ public class Universe extends JPanel
 
 	private final EndingPredictor predictor = new EndingPredictor(PREDICTION_LIMIT);
 
-	private final StatusLine statusLine  = new StatusLine();	// 창 아래 한 줄의 글자를 만든다. Swing의 스레드에서만 쓴다
-	private final JLabel	 statusLabel = new JLabel(" ");		// 창 아래 한 줄. Life가 창에 붙인다
+	private final StatusLine statusLine  = new StatusLine();	// 창 아래 두 줄의 글자를 만든다. Swing의 스레드에서만 쓴다
+	private final JLabel	 stateLabel  = new FixedLabel();	// 윗줄: 세대 수, 세포 수, 규칙
+	private final JLabel	 endingLabel = new FixedLabel();	// 아랫줄: 예측한 결말
+	private final JPanel	 statusBar	 = new JPanel( new GridLayout(2,1) );	// 두 줄을 담는다. Life가 창에 붙인다
 
-	// 예측은 작업자 스레드가 계산한다. 끝나면 결과를 Swing의 스레드로 넘겨 창 아래 한 줄에 반영한다.
+	/** 결말을 보여 주는 아랫줄의 글자 크기. */
+	private static final float ENDING_FONT_SIZE = 16f;
+
+	/**
+	 * 글자가 바뀌어도 창의 배치를 다시 하라고 요청하지 않는 글자 칸.
+	 * JLabel은 글자가 바뀔 때마다 그 요청(revalidate)을 한다. 그러면 창이 판을 가운데 칸 크기로 늘리고,
+	 * 판은 곧바로 정사각형으로 다시 줄어든다(아래 componentResized). 창을 키워 놓으면 이것이 번쩍임으로 보였다.
+	 * 이 글자 칸은 창 아래에 가로로 꽉 차고 높이가 글자 한 줄로 정해져 있어서, 글자가 바뀌어도 배치를 다시 할 필요가 없다.
+	 */
+	private static class FixedLabel extends JLabel
+	{	FixedLabel()
+		{	super(" ");
+		}
+		public void revalidate()
+		{	// 일부러 아무것도 하지 않는다
+		}
+	}
+
+	// 예측은 작업자 스레드가 계산한다. 끝나면 결과를 Swing의 스레드로 넘겨 창 아래 두 줄에 반영한다.
 	private final PredictionWorker worker = new PredictionWorker
 			(	request -> predictor.predict( request.start(), request.rule() ),
 				(request, ending) -> SwingUtilities.invokeLater
 				(	() ->
 					{	statusLine.accept( request, ending );
-						statusLabel.setText( statusLine.text() );
+						showStatusText();
 					}
 				)
 			);
@@ -221,11 +241,16 @@ public class Universe extends JPanel
 						++generationNumber;
 						now = readBoard();
 					}
-					// 세대가 넘어간 것은 예측한 길을 따라간 것이다. 다시 예측하지 않고 한 줄의 숫자만 고친다.
+					// 세대가 넘어간 것은 예측한 길을 따라간 것이다. 다시 예측하지 않고 창 아래의 숫자만 고친다.
 					SwingUtilities.invokeLater( () -> showStatus(now) );
 				}
 			}
 		);
+
+		endingLabel.setFont( endingLabel.getFont().deriveFont(ENDING_FONT_SIZE) );
+		statusBar.setBorder( BorderFactory.createEmptyBorder(4,8,4,8) );
+		statusBar.add( stateLabel  );
+		statusBar.add( endingLabel );
 
 		final PredictionRequest first;
 		synchronized( boardLock )
@@ -234,9 +259,16 @@ public class Universe extends JPanel
 		SwingUtilities.invokeLater( () -> predictAgain(first) );
 	}
 
-	/** 창 아래 한 줄. 세대 수, 세포 수, 규칙, 예측한 결말을 보여 준다. */
-	public JComponent statusLabel()
-	{	return statusLabel;
+	/** 창 아래 두 줄. 세대 수, 세포 수, 규칙과 예측한 결말을 보여 준다. */
+	public JComponent statusBar()
+	{	return statusBar;
+	}
+
+	/** statusLine이 만든 글자를 두 글자 칸에 올린다. Swing의 스레드에서 부른다. */
+	private void showStatusText()
+	{	stateLabel.setText ( statusLine.stateText()  );
+		endingLabel.setText( statusLine.endingText() );
+		endingLabel.setForeground( statusLine.endingColor() );
 	}
 
 	/** 규칙을 바꾼다. 규칙을 바꾸는 곳은 모두 이 메서드를 거친다. 그래야 다시 예측하는 것이 빠지지 않는다 (ADR 004). */
@@ -266,17 +298,17 @@ public class Universe extends JPanel
 		return readBoard();
 	}
 
-	/** 창 아래 한 줄을 이 상태로 고치고, 이 상태로 결말을 다시 예측하게 한다. Swing의 스레드에서 부른다. */
+	/** 창 아래 두 줄을 이 상태로 고치고, 이 상태로 결말을 다시 예측하게 한다. Swing의 스레드에서 부른다. */
 	private void predictAgain( PredictionRequest request )
 	{	showStatus( request );
 		worker.request( request );		// 계산은 작업자 스레드가 한다. 여기서는 기다리지 않는다
 	}
 
-	/** 창 아래 한 줄을 이 상태로 고친다. Swing의 스레드에서 부른다. */
+	/** 창 아래 두 줄을 이 상태로 고친다. Swing의 스레드에서 부른다. */
 	private void showStatus( PredictionRequest state )
 	{	statusLine.update( state.generation(), state.start().liveCount(),
 							state.rule().toString(), state.change() );
-		statusLabel.setText( statusLine.text() );
+		showStatusText();
 	}
 
 	/** Singleton Accessor. The Universe object itself is manufactured
