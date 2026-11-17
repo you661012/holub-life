@@ -43,7 +43,7 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 - 시간은 실행할 때마다 달라진다. `Fair`는 몇 번 미리 돌린 뒤 다섯 번을 재서 가장 빠른 값을 찍는다. 평소에 걸리는 시간은 이보다 길 수 있다.
 - `Exp`의 나(좌표 집합)는 실험용으로 따로 짠 코드다. 저장소의 `Generation`과 다른 코드다.
 - `Exp`의 `predict()`는 빈 판을 바로 소멸로 본다. `B0`가 든 규칙에서는 틀린다. 저장소의 `EndingPredictor`는 이것을 고쳤다. `Exp`와 `Exp4`는 Conway, HighLife, `B2/S`로만 돌렸으므로 결과에는 영향이 없다.
-- 스레드 실험(`Exp`의 4번, `Exp2`, `StaticFieldDemo`)은 실행마다 숫자가 다르다. 값이 틀어진다는 것만 같다.
+- 스레드 실험(`Exp`의 4번, `Exp2`, `StaticFieldDemo`)은 실행마다 결과가 달라진다. 정상인 값이 나오는 실행이 있어도 경쟁 문제가 없다는 뜻은 아니다. 문서에 적은 실행에서는 `nestingLevel`이 20번 중 20번, `readingPermitted`가 20번 중 12번 틀어졌다.
 - `B0`와 `Refresh`는 지금 코드(고친 뒤)로 돌리면 문서에 적은 "고치기 전"의 결과가 나오지 않는다. 고치기 전의 결과를 보려면 해당 커밋 앞의 코드로 돌려야 한다 (`B0`는 `e42f9eb` 앞, `Refresh`는 `8efe048` 앞).
 - ADR 002의 측정(2026-11-16, `Rule.nextState()`가 불린 횟수와 세대당 시간)에 쓴 코드는 남아 있지 않다.
 
