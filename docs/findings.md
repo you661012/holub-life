@@ -125,6 +125,8 @@ HolubSQL은 조회할 때마다 조건이 다르고 이 프로젝트는 판 전�
 
 ### 화면 연결에서 쓸 수 있는 후보 (아직 정하지 않았다)
 
+(덧붙임: 아래 첫 번째인 규칙 변경 알림은 같은 날 `Universe`의 메서드 하나에 모으는 쪽으로 정했다. Observer는 고르지 않았다. ADR 004에 있다.)
+
 - Observer (`3 Observer`, `15 Mediator` 13~15쪽): 규칙이 바뀌면 예측을 다시 해야 한다. 지금 `RuleHolder.change()`는 아무에게도 알리지 않는다.
   길은 둘이다. `RuleHolder`가 바뀐 것을 알리게 한다(원본 `Publisher`를 쓸 수 있다). 또는 `Universe`가 규칙을 바꾼 뒤 예측도 직접 부른다(원본에서 `Universe`가 하는 Mediator 방식).
   `15 Mediator` 15쪽이 이 둘을 비교한다. 세대가 넘어가는 순간은 원본의 Observer(`Clock.addClockListener`)로 알 수 있다.
