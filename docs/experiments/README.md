@@ -38,6 +38,7 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 | `StatusCheck` | 창을 화면에 띄우지 않고 클릭·세대 진행·메뉴를 흉내 내며 창 아래 한 줄의 글자를 읽는다. `java -Dapple.awt.UIElement=true`로 실행한다 | ADR 005 7절, ADR 004 5절 |
 | `Flicker` | 창을 띄우지 않고 클릭 5번을 흉내 내, 창의 배치가 무효가 된 횟수와 판의 크기가 바뀐 횟수를 센다. `java -Dapple.awt.UIElement=true`로 실행한다. 인자를 하나 주면 상태 표시를 창에 붙이지 않는다 | 확장 2 문서 4-1절 |
 | `Fit` | 가장 긴 글자를 넣었을 때 상태 표시 두 줄이 창 너비 안에 들어가는지 잰다. `java -Dapple.awt.UIElement=true`로 실행한다 | 확장 2 문서 4-1절 |
+| `AutoStop` | 창을 띄우지 않고 실제 시계(30ms)를 돌려, 소멸이나 정지에 도달하면 시계가 멈추는지 본다. `java -Dapple.awt.UIElement=true`로 실행한다. 8초쯤 걸린다 | 확장 2 문서 4-1절 |
 | `StaticFieldDemo` | 그냥 필드와 `static` 필드를 두 스레드에서 10만 번씩 올렸을 때의 차이 | ADR 003 4절 |
 
 `screen-check/Screen.java`는 위 명령으로 컴파일되지 않는다. 아래 "화면 쪽 확인"에 따로 적었다.
