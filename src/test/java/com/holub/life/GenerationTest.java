@@ -104,6 +104,12 @@ class GenerationTest {
     }
 
     @Test
+    void 살아_있는_칸의_수를_알려_준다() {
+        assertEquals(0, new Generation(cells(), WIDTH).liveCount());
+        assertEquals(3, new Generation(cells(10, 10, 11, 10, 12, 10), WIDTH).liveCount());
+    }
+
+    @Test
     void 판_밖의_좌표로는_만들_수_없다() {
         assertThrows(IllegalArgumentException.class, () -> new Generation(cells(64, 10), WIDTH));   // x는 0~63
         assertThrows(IllegalArgumentException.class, () -> new Generation(cells(10, -1), WIDTH));   // y는 0~63

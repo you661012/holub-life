@@ -75,6 +75,11 @@ public class Generation {
         return copies;
     }
 
+    /** 살아 있는 칸의 수. */
+    public int liveCount() {
+        return liveCells.size();
+    }
+
     /** 살아 있는 칸이 하나도 없는가. */
     public boolean isEmpty() {
         return liveCells.isEmpty();
