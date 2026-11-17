@@ -33,6 +33,8 @@ public class Generation {
     public Generation next(Rule rule) {
         Set<Point> nextCells = new HashSet<>();
 
+        // 판의 모든 칸을 본다. 살아 있는 칸 주변만 보면 빠르지만, 이웃이 0개여도 태어나는 규칙(B0)에서 틀린다.
+        // 실제 판도 세대마다 모든 Resident가 계산한다.
         for (int y = 0; y < width; y++) {            // 판 안의 칸만 본다. 판 밖에는 칸이 생기지 않는다
             for (int x = 0; x < width; x++) {
                 Point cell = new Point(x, y);
