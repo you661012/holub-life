@@ -2,7 +2,7 @@
 <h1>5. 확장 2. 결말 예측과 자동 정지</h1>
 
 <h2>5-1. 요약</h2>
-<p class="lead">지금 판의 배치와 규칙으로 앞 세대를 미리 돌려 보고 화면이 거기에 이르기 전에 결말을 알려 준다. 예측한 소멸·정지에 도달하면 시계를 저절로 멈춘다.</p>
+<p class="lead">지금 판의 배치와 규칙으로 앞 세대를 미리 돌려 보고 화면이 거기에 이르기 전에 결말을 알려 준다. 예측한 결말이 소멸이나 정지이면 판이 그 세대에 이른 뒤 시계를 저절로 멈춘다.</p>
 <p>Life Game은 같은 배치와 같은 규칙이면 언제나 같게 진행한다. 그래서 화면보다 앞서 세대를 돌리다가 전에 본 모양이 다시 나오면 그 뒤의 진행이 정해진다. 판은 64×64칸으로 막혀 있어 가능한 배치의 수가 유한하므로, 충분히 오래 돌리면 전에 본 모양이 반드시 다시 나온다. 다만 그때까지 얼마나 걸릴지는 모르므로 한도(500세대)를 두었다.</p>
 <table>
   <tr><th style="width:16%">결말</th><th>판정</th><th style="width:30%">창 아랫줄 (글자색)</th></tr>
@@ -14,7 +14,7 @@
 <p>창 아래 윗줄에는 <code>Generation 12 | Cells 34 | Rule B3/S23</code>처럼 세대 수, 살아 있는 세포 수, 현재 규칙을 보여 준다. 예측은 판이나 규칙이 바뀔 때(클릭, Clear, Load, 규칙 변경)만 다시 하고 세대가 진행될 때는 남은 세대 수만 줄인다. 글자색은 결말의 종류가 바뀐 것을 글자를 읽기 전에 알아볼 수 있게 하자는 생각에서 넣었다.</p>
 
 <h2>5-2. 기존 코드와의 비교</h2>
-<p>원본에는 결말을 알려 주는 기능도, 세대 수나 세포 수를 보여 주는 곳도 없었다. 더 중요한 것은 화면의 판을 건드리지 않고 같은 배치를 따로 돌려 볼 수단이 없었다는 점이다. 판은 <code>Universe</code>가 만든 하나뿐이고, <code>Cell.create()</code>는 이름과 달리 살아 있는 칸을 옮기지 않고 빈 판을 새로 만든다. <code>Neighborhood</code>에는 모든 판이 함께 쓰는 <code>static</code> 필드(<code>nestingLevel</code>, <code>readingPermitted</code>)도 있다. 그래서 예측용 계산을 새로 만들었다(결정 5-A, 미리 돌려 볼 계산).</p>
+<p>원본에는 결말을 알려 주는 기능도, 세대 수나 세포 수를 보여 주는 곳도 없었다. 더 중요한 것은 화면의 판을 건드리지 않고 같은 배치를 따로 돌려 볼 수단이 없었다는 점이다. 판은 <code>Universe</code>가 만든 하나뿐이고, <code>Cell.create()</code>는 이름과 달리 살아 있는 칸을 옮기지 않고 빈 판을 새로 만든다. <code>Neighborhood</code>에는 <code>static</code> 필드(<code>nestingLevel</code>, <code>readingPermitted</code>)도 있다. <code>static</code> 필드는 객체마다 따로 있는 변수가 아니라 그 클래스의 모든 객체가 하나를 함께 쓰는 변수라서, 판을 하나 더 만들어도 이 값은 두 판이 나눠 쓴다. 그래서 예측용 계산을 새로 만들었다(결정 5-A, 미리 돌려 볼 계산).</p>
 <table>
   <tr><th style="width:22%">클래스</th><th style="width:10%">구분</th><th>하는 일</th></tr>
   <tr><td><code>Generation</code></td><td>새로 만듦</td><td>한 세대에 살아 있는 칸의 좌표와 판 크기. <code>next(Rule)</code>이 다음 세대를 새 객체로 돌려준다. 한 번 만들면 바뀌지 않는다</td></tr>
@@ -34,6 +34,7 @@
   <img src="fig5-1-predict-class.svg" alt="확장 2 클래스 다이어그램">
   <figcaption>그림 5-1. 확장 2의 클래스. 파란 테두리는 새로 만든 클래스</figcaption>
 </figure>
+<p>그림 아래쪽의 <code>EndingPredictor</code>, <code>Generation</code>, <code>Ending</code>은 <code>Universe</code>와 Swing에 의존하지 않는다. <code>EndingPredictor</code>는 <code>Generation</code>을 되풀이해 진행시키고 결과를 <code>Ending</code>으로 만들며, <code>Generation</code>은 확장 1에서 만든 <code>Rule</code>로 다음 세대를 계산한다. 예측의 핵심이 화면과 떨어져 있어서 6장의 테스트를 창 없이 쓸 수 있었다. 화면 쪽과 계산 쪽을 오가는 것은 <code>PredictionRequest</code> 하나다. 같은 잠금 안에서 읽은 판, 규칙, 두 번호를 한 객체에 묶어 넘기기 때문에 작업자 스레드는 계산하는 동안 <code>Universe</code>의 필드를 다시 읽지 않는다. 결과를 받는 <code>StatusLine</code>도 그 요청을 함께 받아서 이 결과가 지금 판의 것인지 가린다. 왼쪽 위의 <code>LiveCellCollector</code>는 원본의 <code>Cell.Memento</code>를 구현했다. 그래서 판을 읽으려고 원본 <code>Cell</code>이나 <code>Neighborhood</code>를 고칠 필요가 없었다.</p>
 
 <h2>5-3. 적용한 설계 원칙과 원본 패턴의 활용</h2>
 <p>확장 2에 새로 적용한 GoF 패턴은 없다. 규칙 변경 알림에 Observer를 쓰는 안을 검토했지만 고르지 않았다(결정 5-B, 규칙 변경 뒤 다시 예측). 대신 확장 1에서 만든 구조와 원본의 패턴을 그대로 활용했고 설계는 다음 원칙에 기대고 있다.</p>
@@ -41,10 +42,10 @@
   <tr><th style="width:26%">패턴·원칙</th><th>이 확장에서 쓰인 곳</th></tr>
   <tr><td>Strategy의 재사용</td><td><code>Rule</code>을 쓰는 쪽이 <code>Resident</code> 하나에서 <code>Resident</code>와 <code>Generation</code> 둘이 됐다. <code>Rule</code>과 그 구현체들은 고치지 않았다. 화면의 판과 예측이 같은 규칙 구현을 부른다</td></tr>
   <tr><td>Mediator (원본 <code>Universe</code>)</td><td>규칙 변경과 다시 예측 요청을 <code>Universe</code>의 메서드 하나(<code>changeRule()</code>)에 모았다</td></tr>
-  <tr><td>Active Object (원본 <code>refreshNow()</code>)</td><td>예측 결과와 상태 표시를 원본 <code>refreshNow()</code>처럼 <code>SwingUtilities.invokeLater</code>로 Swing 스레드에 넘긴다</td></tr>
+  <tr><td>Swing 스레드로 넘기는 방법 (원본 <code>refreshNow()</code>)</td><td>원본 <code>refreshNow()</code>는 다시 그리기를 바로 하지 않고 <code>SwingUtilities.invokeLater</code>로 Swing 이벤트 큐에 넣는다. Holub은 주석에서 이것을 Active Object의 예라고 불렀다. 예측 결과와 상태 표시도 이 방법을 그대로 빌려 Swing 스레드에 넘긴다. Active Object를 새로 설계한 것은 아니다</td></tr>
   <tr><td>Memento 통로의 재사용</td><td>판을 읽을 때 원본 Store 기능의 <code>transfer(…, Cell.STORE)</code>와 <code>Cell.Memento</code>를 쓴다. 상태를 저장하고 되돌리는 Memento를 새로 적용한 것은 아니고 읽기에만 쓴다</td></tr>
-  <tr><td>모델과 UI의 분리</td><td><code>Generation</code>, <code>EndingPredictor</code>, <code>StatusLine</code>은 Swing도 <code>Universe</code>도 없이 만들 수 있어 JUnit으로 시험한다. 과제 지시문의 "모델을 UI와 분리하여 독립적으로 테스팅"에 해당한다. 프로그램 전체를 MVC로 나눈 것은 아니다</td></tr>
-  <tr><td>단일 책임 원칙</td><td>예측 계산(<code>EndingPredictor</code>), 작업 관리(<code>PredictionWorker</code>), 화면 글자 만들기(<code>StatusLine</code>)를 처음부터 <code>Universe</code> 밖의 클래스로 나눠 각각 한 가지 일을 맡겼다. 작업 관리와 글자 만들기는 화면에 묶인 <code>Universe</code> 안에 두면 JUnit으로 시험하기 어려워서 따로 두었다 (ADR 005 5절)</td></tr>
+  <tr><td>모델과 UI의 분리</td><td><code>Generation</code>, <code>EndingPredictor</code>는 예측 계산(모델)이라 Swing도 <code>Universe</code>도 모른다. <code>StatusLine</code>은 화면에 띄울 글자와 색을 정하는 표시 쪽 논리지만, Swing 컴포넌트를 쓰지 않고 글자와 색 값만 만들게 했다. 셋 모두 창 없이 JUnit으로 시험한다. 과제 지시문의 "모델을 UI와 분리하여 독립적으로 테스팅"에 해당한다. 프로그램 전체를 MVC로 나눈 것은 아니다</td></tr>
+  <tr><td>단일 책임 원칙</td><td>예측 계산(<code>EndingPredictor</code>)은 결말의 판정 기준이 바뀔 때, 작업 관리(<code>PredictionWorker</code>)는 스레드를 다루는 방식이 바뀔 때, 화면 글자 만들기(<code>StatusLine</code>)는 보여 주는 문구나 색이 바뀔 때 고친다. 고칠 이유가 서로 다른 셋을 처음부터 <code>Universe</code> 밖의 클래스로 나눠 두어, 예를 들어 문구나 색을 바꿀 때는 <code>StatusLine</code>만 고치면 된다. 나눈 직접적인 이유는 화면에 묶인 <code>Universe</code> 안에 두면 JUnit으로 시험하기 어렵다는 것이었다 (ADR 005 5절)</td></tr>
   <tr><td>바뀌지 않는 객체</td><td><code>Generation</code>과 <code>PredictionRequest</code>는 만든 뒤 바뀌지 않는다. 그래서 잠금 밖의 작업자 스레드가 안전하게 계산할 수 있고, <code>Generation</code>을 <code>Map</code>의 키로 쓸 수 있다</td></tr>
 </table>
 
@@ -66,9 +67,9 @@
   <tr><td>가. <code>Neighborhood</code> 판을 하나 더</td><td><code>Universe</code>처럼 판을 하나 더 만들고 배치를 <code>userClicked()</code>로 옮겨 놓은 뒤 원본 코드로 진행한다</td><td>세대를 진행하는 코드가 한 벌이라 계산이 어긋날 일이 없다</td><td><code>static</code> 필드를 판끼리 함께 써서 두 판이 다른 스레드에서 돌면 값이 틀어진다. <code>userClicked()</code>를 다른 용도로 쓴다</td></tr>
   <tr><td class="chosen">나. 좌표와 <code>Rule</code>로 계산하는 새 클래스</td><td class="chosen">살아 있는 칸의 좌표와 판 크기를 담고, <code>next(rule)</code>이 칸마다 이웃을 세어 <code>rule.nextState()</code>를 부른다</td><td class="chosen">함께 쓰는 변수가 없다. 확장 1의 <code>Rule</code>을 그대로 쓴다. 화면 없이 JUnit으로 시험한다</td><td class="chosen">진행 코드가 두 벌이 되어, 둘이 같다는 것을 테스트로 지켜야 한다. 판 끝 처리를 따로 맞춰야 한다</td></tr>
 </table>
-<p><b>정한 방법.</b> 두 방법을 표로 비교하지 않고 작게 만들어 같은 배치에 돌려 본 뒤 정했다. 결말은 둘이 같았다(한 칸 1세대 뒤 소멸, Block 처음부터 정지, Blinker 주기 2, Glider 247세대 뒤 정지, 무작위 판 미확정). 무작위 판 세 개를 300세대 돌렸을 때도 세대마다 칸의 위치까지 같았다. 차이는 스레드에서 났다. 가의 판 둘을 서로 다른 스레드에서 300세대씩 동시에 돌렸더니 20번 중 20번 <code>nestingLevel</code>이 처음 값 −1로 돌아오지 않았고(−24에서 −87), 12번은 <code>readingPermitted</code>가 <code>false</code>로 남았다. 같은 스레드에서 번갈아 돌리면 문제가 없었다. 이 프로그램은 세대 진행을 시계 스레드에서, 클릭과 메뉴를 Swing 스레드에서 처리하므로 가를 쓰려면 원본 <code>Neighborhood</code>를 또 고치거나 예측 스레드를 제한해야 했다.</p>
+<p><b>정한 방법.</b> 위 표의 장단점만으로 정하지 않고, 두 방법을 작게 만들어 같은 배치에 돌려 본 결과로 정했다. 결말은 둘이 같았다(한 칸 1세대 뒤 소멸, Block 처음부터 정지, Blinker 주기 2, Glider 247세대 뒤 정지, 무작위 판 미확정). 무작위 판 세 개를 300세대 돌렸을 때도 세대마다 칸의 위치까지 같았다. 차이는 스레드에서 났다. 가의 판 둘을 서로 다른 스레드에서 300세대씩 동시에 돌렸더니 20번 중 20번 <code>nestingLevel</code>이 처음 값 −1로 돌아오지 않았고(−24에서 −87), 12번은 <code>readingPermitted</code>가 <code>false</code>로 남았다. 같은 스레드에서 번갈아 돌리면 문제가 없었다. 이 프로그램은 세대 진행을 시계 스레드에서, 클릭과 메뉴를 Swing 스레드에서 처리하므로 가를 쓰려면 원본 <code>Neighborhood</code>를 또 고치거나 예측 스레드를 제한해야 했다.</p>
 <p><b>선택: 나</b>(클래스 이름 <code>Generation</code>). 이유는 셋이다. 가는 스레드에서 값이 틀어졌다. 확장 1에서 <code>Resident</code> 밖으로 뺀 <code>Rule</code>을 예측에서도 그대로 쓴다. 화면 없이 테스트할 수 있다.</p>
-<p><b>포기한 것과 지킨 방법.</b> 진행 코드가 한 벌인 것과 속도를 포기했다. 같은 조건에서 500세대를 진행만 시켰을 때 Blinker 판은 <code>Neighborhood</code> 약 40ms에 <code>Generation</code> 약 190ms, 무작위 30% 판은 약 57ms에 약 350ms였다. <code>Generation</code>은 이웃이 0개여도 태어나는 규칙(<code>B0</code>)에서도 맞도록 매 세대 판의 모든 칸을 보기 때문이다. 코드가 두 벌인 위험은 <code>GenerationMatchesBoardTest</code>가 지킨다. 같은 배치를 실제 판과 <code>Generation</code>에 놓고 매 세대 칸의 위치를 비교한다. 이 테스트가 실제로 어긋남을 잡는지 보려고 <code>Generation</code>을 판 끝이 반대편과 이어지게 일부러 고쳤더니, 이 비교 테스트와 <code>GenerationTest</code>의 판 끝 테스트를 합해 6개가 실패했다.</p>
+<p><b>포기한 것과 지킨 방법.</b> 진행 코드가 한 벌인 것과 속도를 포기했다. 같은 조건에서 500세대를 진행만 시켰을 때 Blinker 판은 <code>Neighborhood</code> 약 40ms에 <code>Generation</code> 약 190ms, 무작위 30% 판은 약 57ms에 약 350ms였다. 두 쪽 모두 매 세대 4,096칸을 다 계산하지만(<code>Generation</code>은 이웃이 0개여도 태어나는 <code>B0</code> 규칙 때문에, 원본 판은 결정 4-C 때문에), <code>Generation</code>은 칸마다 좌표 객체(<code>Point</code>)를 새로 만들고 집합에서 찾아 이웃을 센다. 원본 판은 이웃 칸을 배열에서 바로 꺼낸다. 코드가 두 벌인 위험은 <code>GenerationMatchesBoardTest</code>가 지킨다. 같은 배치를 실제 판과 <code>Generation</code>에 놓고 매 세대 칸의 위치를 비교한다. 이 테스트가 실제로 어긋남을 잡는지 보려고 <code>Generation</code>을 판 끝이 반대편과 이어지게 일부러 고쳤더니, 이 비교 테스트와 <code>GenerationTest</code>의 판 끝 테스트를 합해 6개가 실패했다.</p>
 
 <h3>결정 5-B. 규칙 변경 뒤 다시 예측: 자리마다 부를까, 메서드 하나에 모을까, Observer로 알릴까</h3>
 <table>
@@ -82,7 +83,7 @@
 <p>원본 <code>Universe</code>가 클릭, 메뉴, 시계에서 오는 일을 모두 받아 처리하고 있어서, 규칙 변경도 같은 곳에 둔 것이다. 규칙을 바꾸는 곳이 <code>Universe</code> 밖에 생기면 다를 다시 검토한다.</p>
 
 <h3>결정 5-C. 판을 읽는 잠금: 같은 잠금을 어디까지 걸까</h3>
-<p><b>문제.</b> 세대 진행은 시계 스레드, 클릭과 메뉴는 Swing 스레드에서 일어난다. <code>transition()</code>은 칸을 하나씩 차례로 바꾸므로 그 도중에 판을 읽으면 일부는 이번 세대이고 일부는 다음 세대인, 어느 세대의 판도 아닌 판을 읽을 수 있다.</p>
+<p><b>문제.</b> 세대 진행은 시계 스레드, 클릭과 메뉴는 Swing 스레드에서 일어난다. (Go &gt; Tick으로 한 세대씩 넘길 때는 메뉴를 처리하는 Swing 스레드가 직접 진행한다. 같은 잠금을 쓰므로 이 경우도 겹치지 않는다.) <code>transition()</code>은 칸을 하나씩 차례로 바꾸므로 그 도중에 판을 읽으면 일부는 이번 세대이고 일부는 다음 세대인, 어느 세대의 판도 아닌 판을 읽을 수 있다.</p>
 <table>
   <tr><th style="width:18%">대안</th><th>방식</th><th style="width:36%">남는 문제</th></tr>
   <tr><td>가</td><td>잠금 없이 읽는다</td><td>세대가 넘어가는 도중의 판을 읽는다</td></tr>
@@ -115,6 +116,7 @@
   <img src="fig5-2-predict-seq.svg" alt="클릭부터 예측 표시까지의 시퀀스 다이어그램">
   <figcaption>그림 5-2. 판을 클릭한 뒤 예측 결과가 창 아래에 표시되기까지 (결정 5-C 판을 읽는 잠금, 5-D 예측할 스레드)</figcaption>
 </figure>
+<p>이 그림에서 볼 곳은 스레드가 바뀌는 두 지점이다. Swing 스레드는 판을 고치고 읽는 동안만 잠금을 잡고, 예측은 작업자에게 넘긴 뒤 바로 돌아온다. 그래서 수백 ms에서 수 초가 걸리는 계산 동안에도 클릭과 그리기가 멈추지 않는다. 계산이 끝나면 작업자 스레드는 화면을 직접 고치지 않고 <code>invokeLater</code>로 결과를 Swing 스레드에 돌려보낸다. 그사이 사용자가 다시 클릭했다면 변경 번호가 이미 올라가 있으므로 <code>accept</code>가 그 결과를 버린다. 결정 5-C(잠금), 5-D(작업자 하나), 5-E(옛 결과 버리기)가 이 한 흐름 안에 다 들어 있다.</p>
 
 <h3>결정 5-F. 화면 갱신 버그: 원본 반환값을 고칠까, 언제나 다시 그릴까</h3>
 <p><b>문제.</b> 규칙 직접 입력(E2)으로 <code>B0/S</code>처럼 이웃이 0개여도 태어나는 규칙이 들어올 수 있다. 빈 판을 <code>B0/S</code>로 돌리면 실제 판은 0 → 4,096 → 0칸으로 되풀이되는데 화면은 다시 그려지지 않았다. <code>Universe.tick()</code>은 판의 <code>transition()</code>이 <code>true</code>일 때만 다시 그린다. <code>Cell.transition()</code>의 주석은 "상태가 바뀌었으면 true"인데, 원본 <code>Resident</code>는 반대로 "안 바뀌었으면 true"를 돌려주고 있었다. 모든 칸이 동시에 바뀌는 세대에서만 드러나는 원본의 어긋남이었다.</p>
@@ -141,18 +143,20 @@
   <img src="fig5-3-autostop-seq.svg" alt="세대 진행과 자동 정지의 시퀀스 다이어그램">
   <figcaption>그림 5-3. 세대 진행과 자동 정지 (결정 5-G, 자동 정지 방식)</figcaption>
 </figure>
+<p>세대를 넘기는 쪽과 멈추는 쪽이 다른 스레드다. 시계 스레드는 세대를 넘기고 판을 읽은 뒤 화면 갱신을 Swing 스레드에 맡기고 기다리지 않는다. 멈출지를 묻고 실제로 멈추는 것은 Swing 스레드다. 이때 판을 다시 읽지 않고 <code>StatusLine</code>이 이미 갖고 있는 예측 결과와 남은 세대로 판단한다. 시계 쪽에서 보면 원본과 달라진 것이 없다. <code>Clock</code>은 여전히 구독자에게 알리기만 하고, 자동 정지도 원래 있던 <code>stop()</code>을 부를 뿐이다.</p>
 <figure>
   <img src="fig5-4-status-state.svg" alt="창 아랫줄의 상태 다이어그램">
   <figcaption>그림 5-4. 창 아랫줄(예측한 결말)의 상태</figcaption>
 </figure>
+<p>판이나 규칙이 바뀌면 어느 상태에 있든 계산 중으로 돌아간다는 것이 이 그림의 요점이다. 반대로 세대 진행은 예측을 다시 하지 않고 남은 세대 N만 줄인다. 같은 규칙으로 한 세대 나아간 것은 이미 예측한 길을 따라간 것이기 때문이다. 미확정 상태에서 나가는 전이는 판이나 규칙을 바꾸는 것뿐이다. 그래서 500세대가 지나도 다시 예측하지 않는다. 자동 정지는 결말에 도달한 상태 중에서도 소멸과 정지일 때만 일어난다.</p>
 
 <h2>5-5. 구현 결과와 확인</h2>
 <ul>
   <li>JUnit: <code>GenerationTest</code> 10, <code>GenerationMatchesBoardTest</code> 5, <code>EndingPredictorTest</code> 12, <code>EndingMatchesBoardTest</code> 3, <code>LiveCellCollectorTest</code> 2, <code>PredictionWorkerTest</code> 4, <code>StatusLineTest</code> 18, <code>RuleToStringTest</code> 3 (6장).</li>
-  <li>예측기 테스트의 기대값 중 손으로 따지기 어려운 것(가로 5칸, HighLife, Glider)은 같은 배치를 실제 판에서 돌려 얻었다. 기대값이 구현과 따로 서도록 하려는 것이다.</li>
-  <li><code>EndingMatchesBoardTest</code>는 직접 입력할 수 있는 특이한 규칙 10개(<code>B0/S</code>, <code>B/S</code>, <code>B012345678/S012345678</code> 등)와 Conway, HighLife로 예측한 결말을 실제 판의 그 세대와 맞춘다. 예측기가 처음에 "빈 판이면 바로 소멸"이라고 답해 <code>B0</code>에서 틀렸던 일이 있어서 넣었다.</li>
+  <li>예측기 테스트의 기대값 중 손으로 따지기 어려운 것(가로 5칸, HighLife, Glider)은 같은 배치를 실제 판에서 돌려 얻었다. 예측기가 낸 답을 그대로 기대값으로 적으면 틀린 답도 통과하기 때문이다.</li>
+  <li><code>EndingMatchesBoardTest</code>는 직접 입력할 수 있는 특이한 규칙 10개(<code>B0/S</code>, <code>B/S</code>, <code>B012345678/S012345678</code> 등)와 Conway, HighLife로 예측한 뒤, 같은 배치를 실제 판에서 돌려 예측한 세대에 판이 정말 그 결말 상태인지 본다. 예측기가 처음에 "빈 판이면 바로 소멸"이라고 답해 <code>B0</code>에서 틀렸던 일이 있어서 넣었다.</li>
   <li>창을 띄우지 않고 클릭·세대 진행·메뉴를 흉내 내 돌린 결과: Glider 5칸을 놓으면 <code>still in 247 generations</code>, 3세대 뒤 <code>244</code>, 규칙을 바꾸면 <code>calculating...</code>을 거쳐 새 결과, Clear 뒤 <code>extinct</code>. 실제 시계(30ms)를 돌리자 한 칸, Block, ㄱ자 3칸은 멈췄고 가로 3칸은 계속 돌았다.</li>
-  <li>실제 창에서: 남은 세대 수가 줄어드는 것, 자동 정지, <code>B0/S</code> 화면 갱신을 확인했다. 코드 동결일(11/23)에는 같은 클릭·메뉴 이벤트를 코드로 보내 자동 정지 뒤 재시작, 도는 중 규칙 변경과 Clear를 창 그림으로 확인했다(그림 5-5~5-10).</li>
+  <li>실제 창에서: 남은 세대 수가 줄어드는 것, 자동 정지, <code>B0/S</code> 화면 갱신을 확인했다. 마지막으로 11/23에는 같은 클릭·메뉴 이벤트를 코드로 보내 자동 정지 뒤 재시작, 도는 중 규칙 변경과 Clear를 창 그림으로 확인했다(그림 5-5~5-10).</li>
 </ul>
 <div class="row three">
   <figure><img class="shot" src="img/run-l-shape.png" alt="ㄱ자를 놓은 직후"><figcaption>그림 5-5. ㄱ자 3칸을 놓은 직후: <code>still in 1 generation</code></figcaption></figure>

@@ -9,6 +9,7 @@
   <img src="fig2-1-original.svg" alt="원본 Life Game의 주요 클래스">
   <figcaption>그림 2-1. 원본 Life Game의 주요 클래스 (원본 <code>648d9bd</code> 기준)</figcaption>
 </figure>
+<p>그림은 크게 두 덩어리다. 아래쪽은 판의 구조다. <code>Universe</code>는 생성자에서 판을 몇 겹으로 쌓고 맨 끝에 <code>Resident</code>를 둘지 정하지만, 판이 만들어진 뒤에는 <code>Cell</code> 타입의 <code>outermostCell</code>을 통해서만 다룬다. 그래서 세대 진행이나 클릭 처리에서는 안쪽 구역을 직접 찾아 들어갈 필요가 없다. <code>Neighborhood</code>가 <code>Cell</code>을 64개 담는 합성 관계가 있어서 구역 안에 구역을 넣을 수 있다. 오른쪽은 시간의 흐름이다. 시계는 <code>Universe</code>를 직접 알지 못하고 <code>Publisher</code>를 거쳐 <code>Clock.Listener</code> 인터페이스만 부른다. 판과 시계를 함께 아는 클래스는 <code>Universe</code> 하나뿐이고, 두 확장에서 고친 연결 코드도 대부분 여기에 들어갔다.</p>
 
 <h2>2-1. 판을 이루는 클래스 (Composite, Prototype)</h2>
 
@@ -17,19 +18,19 @@
                     new Neighborhood( 8,
                         new Resident() ) );        // 원본. 지금은 new Resident(ruleHolder)</code></pre>
 
-<p><b>Composite.</b> 묶음도 낱개와 같은 인터페이스를 갖게 해서 둘을 같은 방식으로 다루는 패턴이다. 여기서 Component는 인터페이스 <code>Cell</code>, Leaf는 세포 한 칸 <code>Resident</code>, Composite는 칸 8×8개를 담은 구역 <code>Neighborhood</code>다. 바깥 구역은 안쪽 구역 64개를, 안쪽 구역은 <code>Resident</code> 64개를 담아 판은 64×64 = 4,096칸이 된다. <code>Neighborhood</code>의 <code>grid</code>는 <code>Resident[][]</code>가 아니라 <code>Cell[][]</code>이다. 그래서 같은 <code>Neighborhood</code> 코드가 칸을 담기도 하고 구역을 담기도 한다.</p>
+<p><b>Composite.</b> 칸 하나(<code>Resident</code>)와 칸을 묶은 구역(<code>Neighborhood</code>)이 같은 인터페이스 <code>Cell</code>을 구현해서, 바깥에서는 둘을 구별하지 않고 다룬다. 역할로는 <code>Cell</code>이 Component, <code>Resident</code>가 Leaf, 칸 8×8개를 담은 <code>Neighborhood</code>가 Composite다. 바깥 구역은 안쪽 구역 64개를, 안쪽 구역은 <code>Resident</code> 64개를 담아 판은 64×64 = 4,096칸이 된다. <code>Neighborhood</code>의 <code>grid</code>는 <code>Resident[][]</code>가 아니라 <code>Cell[][]</code>이다. 그래서 같은 <code>Neighborhood</code> 코드가 칸을 담기도 하고 구역을 담기도 한다.</p>
 
 <p>일은 위에서 아래로 위임된다. 예를 들어 칸을 클릭하면 <code>Universe</code>는 바깥 구역에 클릭 위치를 넘기고 바깥 구역은 "몇 번째 안쪽 구역인가"만 계산해 그 구역에 넘기고 안쪽 구역은 다시 "몇 번째 칸인가"를 계산해 그 칸에 넘긴다. 칸(<code>Resident</code>)은 받으면 살아 있음과 죽어 있음을 뒤집는다. 너비를 묻는 <code>widthInCells()</code>도 같은 방식이라, <code>Resident</code>는 1을, 안쪽 구역은 8 × 1 = 8을, 바깥 구역은 8 × 8 = 64를 돌려준다.</p>
 
-<p><b>Prototype.</b> 견본 객체에게 "너와 같은 것을 하나 더 만들어 달라"고 시켜서 객체를 만드는 패턴이다. 위 코드에서 <code>new Resident()</code>는 한 번만 실행된다. <code>Neighborhood</code> 생성자가 받은 견본에게 <code>create()</code>를 64번 시켜 칸을 채우고 바깥 구역은 안쪽 구역을 견본으로 삼아 같은 일을 한다. 그래서 <code>Neighborhood</code>는 안에 무엇을 담는지 몰라도 된다. 이 구조는 확장 1과 바로 이어진다. 견본 <code>Resident</code>에 규칙 보관함을 넣어 두면 <code>create()</code>로 만든 4,096개가 모두 같은 보관함을 물려받는다(4장).</p>
+<p><b>Prototype.</b> 위 코드에서 <code>new Resident()</code>는 한 번만 실행된다. <code>Neighborhood</code> 생성자는 받은 견본에게 "너와 같은 것을 하나 더 만들어 달라"고 <code>create()</code>를 64번 시켜 칸을 채우고, 바깥 구역은 안쪽 구역을 견본으로 삼아 같은 일을 한다. 그래서 <code>Neighborhood</code>는 안에 무엇을 담는지 몰라도 된다. 다만 <code>create()</code>는 견본의 상태까지 복사하지는 않는다. 원본 <code>Resident.create()</code>는 <code>new Resident()</code>를 돌려줄 뿐이라 견본이 살아 있어도 새 칸은 죽은 칸으로 시작한다. 이 구조는 확장 1과 바로 이어진다. 지금의 <code>create()</code>는 <code>new Resident(holder)</code>로 자기가 받은 규칙 보관함의 참조를 새 칸에 넘긴다. 그래서 견본 하나에 보관함을 넣어 두면 4,096칸이 모두 같은 보관함을 본다(4장).</p>
 
 <h2>2-2. 프로그램 시작과 세대 진행 (Singleton, Observer)</h2>
 
 <p><code>Life.main()</code>은 창(<code>JFrame</code>)을 만들고 가운데에 판을 붙인다. 판은 <code>Universe.instance()</code>로 꺼낸다.</p>
 
-<p><b>Singleton.</b> 인스턴스가 하나만 만들어지게 막고 그 하나를 어디서든 같은 방법으로 꺼내 쓰게 하는 패턴이다. <code>Universe</code>는 생성자가 <code>private</code>이고 클래스 안에서 <code>theInstance</code>를 한 번 만들어 <code>instance()</code>로만 내준다. 그래서 창에 붙은 판과 다른 곳에서 꺼낸 판이 서로 다른 판일 수 없다. <code>Clock</code>도 생성자를 <code>private</code>으로 막고 <code>instance()</code>로만 내준다. 다만 <code>Clock</code>은 처음 부를 때 만든다.</p>
+<p><b>Singleton.</b> <code>Universe</code>는 생성자가 <code>private</code>이고 클래스 안에서 <code>theInstance</code>를 한 번 만들어 <code>instance()</code>로만 내준다. 그래서 창에 붙은 판과 다른 곳에서 꺼낸 판이 서로 다른 판일 수 없다. <code>Clock</code>도 생성자를 <code>private</code>으로 막고 <code>instance()</code>로만 내준다. 다만 <code>Clock</code>은 처음 부를 때 만든다.</p>
 
-<p><b>Observer.</b> "일이 생기면 알려 달라"고 미리 등록해 두면, 알려 주는 쪽이 일이 생겼을 때 등록한 쪽들에게 차례로 알리는 패턴이다. Go 메뉴를 누르면 <code>Clock</code>이 정해진 간격마다 <code>tick()</code>을 울린다. <code>Universe</code>는 생성자에서 익명 클래스로 <code>Clock.Listener</code>를 구현해 <code>addClockListener()</code>로 구독해 두었다. 시계는 누가 듣는지 모르고 울릴 때마다 구독자의 <code>tick()</code>을 부른다. 원본의 <code>Universe</code>는 주석에서 스스로를 Swing 이벤트와 Life 클래스들 사이의 mediator라고 부른다. 클릭, 메뉴, 시계에서 오는 일을 받아 판에 전하는 역할을 <code>Universe</code>가 모두 맡는다.</p>
+<p><b>Observer.</b> Go 메뉴를 누르면 <code>Clock</code>이 정해진 간격마다 <code>tick()</code>을 울린다. <code>Universe</code>는 생성자에서 익명 클래스로 <code>Clock.Listener</code>를 구현해 <code>addClockListener()</code>로 구독해 두었다. 시계는 누가 듣는지 모르고 울릴 때마다 구독자의 <code>tick()</code>을 부른다. 시계가 Subject, <code>Universe</code> 안의 익명 리스너가 Observer 역할이다. 원본의 <code>Universe</code>는 주석에서 스스로를 Swing 이벤트와 Life 클래스들 사이의 mediator라고 부른다. 클릭, 메뉴, 시계에서 오는 일을 받아 판에 전하는 역할을 <code>Universe</code>가 모두 맡는다.</p>
 
 <h2>2-3. 한 세대의 두 단계</h2>
 
@@ -38,11 +39,11 @@
   <li><b>계산</b>(<code>figureNextState()</code>): 모든 <code>Resident</code>가 살아 있는 이웃을 세고 다음 상태를 <code>willBeAlive</code>에 적어 두기만 한다. 지금 상태 <code>amAlive</code>는 건드리지 않는다.</li>
   <li><b>반영</b>(<code>transition()</code>): 모든 <code>Resident</code>가 <code>amAlive = willBeAlive</code>로 한꺼번에 바꾼다.</li>
 </ol>
-<p>Life Game의 규칙은 모든 칸이 동시에 바뀌는 것이다. 계산하자마자 바꾸면 뒤에 계산하는 칸이 이미 바뀐 이웃을 보게 되어 결과가 순서에 따라 달라진다. 그래서 두 단계로 나눈다.</p>
+<p>Life Game의 규칙은 모든 칸이 동시에 바뀌는 것이다. 계산하자마자 바꾸면 뒤에 계산하는 칸이 이미 바뀐 이웃을 보게 되어 결과가 순서에 따라 달라진다. 그래서 두 단계로 나눈다. 여기서 "한꺼번에"는 같은 세대로 바뀐다는 뜻이다. 실제 반영은 반복문이 칸을 하나씩 차례로 바꾸지만, 모든 칸의 다음 상태를 이미 다 계산해 둔 뒤라 순서가 결과에 영향을 주지 않는다. 다만 반영하는 도중에 판을 읽으면 반쯤 바뀐 판을 보게 된다(결정 5-C).</p>
 
 <p>원본에서 생사를 정하는 식은 <code>Resident.figureNextState()</code> 안의 한 줄이었다.</p>
 <pre><code>willBeAlive = (neighbors==3 || (amAlive &amp;&amp; neighbors==2));    // Conway 규칙 B3/S23</code></pre>
 <p>규칙이 이 한 줄에 박혀 있다는 것이 확장 1의 출발점이다.</p>
 
-<p>원본에는 계산을 아끼는 장치도 있었다. <code>Neighborhood</code>는 자기 구역과 맞닿은 구역의 가장자리에서 직전 세대에 변한 칸이 없으면 그 구역의 계산을 통째로 건너뛰었다. 규칙이 하나로 고정된 원본에서는 맞는 최적화였지만 규칙을 바꿀 수 있게 되자 문제가 됐다(결정 4-C, 정지한 판 버그).</p>
+<p>원본에는 계산을 아끼는 장치도 있었다. <code>Neighborhood</code>는 직전 세대에 자기 구역 안에서 변한 칸이 없고(<code>amActive</code>가 <code>false</code>) 맞닿은 구역의 가장자리에서도 변한 칸이 없으면, 그 구역의 계산을 통째로 건너뛰었다. 규칙이 하나로 고정된 원본에서는 맞는 최적화였지만 규칙을 바꿀 수 있게 되자 문제가 됐다(결정 4-C, 정지한 판 버그).</p>
 </section>

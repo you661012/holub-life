@@ -10,6 +10,8 @@
 node docs/report/build.mjs
 ```
 
+PDF를 한 번 찍은 뒤 장·절 제목이 몇 쪽에 있는지 읽어 목차에 쪽 번호를 넣고 한 번 더 찍는다. 쪽을 읽는 데 macOS의 `swift`(PDFKit)를 쓴다. 15초쯤 걸린다.
+
 만든 PDF와 중간 파일(`report.html`, `usecase.html`)은 저장소에 넣지 않는다.
 
 ## 파일
@@ -18,6 +20,7 @@ node docs/report/build.mjs
 |---|---|
 | `chapters/00-cover.html` ~ `08-github.html` | 표지·목차와 1~8장. 파일 이름 순서대로 이어 붙인다 |
 | `report.css` | 공통 모양 (A4, 쪽 번호, 표, 코드, 표지) |
+| `pagenums.swift` | PDF에서 장·절 제목이 있는 쪽을 찾는다. `build.mjs`가 목차 쪽 번호를 넣을 때 부른다 |
 | `uml.mjs` | UML 그림을 그리는 작은 도구. 표기는 수업 자료의 그림을 따른다 |
 | `diagrams.mjs` | 보고서의 UML 그림(`fig*.svg`)을 만든다. `build.mjs`가 먼저 실행한다 |
 | `usecase.mjs`, `usecase.svg` | 3장 유스케이스 다이어그램 |

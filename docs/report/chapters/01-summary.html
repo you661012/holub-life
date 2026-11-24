@@ -3,7 +3,7 @@
 
 <p class="lead">사용자가 Life Game의 규칙을 새로 정의해 적용할 수 있고 지금 판이 어떤 결말에 이를지 미리 알 수 있게 했다.</p>
 
-<p>Allen Holub의 Life Game(v1.03, Java/Swing)을 바탕으로 기능을 두 가지 더했다. 원본이 하던 기능은 모두 그대로 동작한다. 두 기능은 한 줄기로 이어진다. 규칙을 입력하고 세포를 놓으면, 프로그램이 그 규칙으로 판을 미리 돌려 결말을 알려 준다.</p>
+<p>Allen Holub의 Life Game(v1.03, Java/Swing)을 바탕으로 기능을 두 가지 더했다. 원본의 메뉴와 클릭 기능은 그대로 두었다. 칸 하나의 판정은 원본 동작 테스트로, 판 전체의 진행은 무작위 판 세 개의 세포 수를 원본과 비교해 확인했다. 파일 선택 창이 뜨는 Load와 Store는 자동 테스트로 확인하지 못했다. 사용자가 보기에 달라진 동작은 예측한 결말이 소멸이나 정지이면 진행이 저절로 멈춘다는 것이다. 이 밖에 결정 4-C로 원본 Load가 구역 경계에서 잘못 진행하던 문제가 함께 사라졌다(7-3절). 두 기능은 한 줄기로 이어진다. 규칙을 입력하고 세포를 놓으면, 프로그램이 그 규칙으로 판을 미리 돌려 결말을 알려 준다.</p>
 
 <table>
   <tr><th style="width:24%">확장</th><th>할 수 있게 된 것</th><th style="width:30%">설계의 중심</th></tr>
@@ -11,21 +11,21 @@
       <td>Rule 메뉴에서 Conway(B3/S23)와 HighLife(B36/S23)를 고르거나, B/S 표기(예: B36/S23)로 규칙을 직접 입력한다. 진행하는 도중에 바꿔도 다음 세대부터 새 규칙을 따른다.</td>
       <td>Strategy 패턴. <code>Resident</code> 안에 박혀 있던 Conway 식을 <code>Rule</code> 객체로 뺐다 (4장)</td></tr>
   <tr><td><b>확장 2. 결말 예측</b><br><span class="e">E3</span> <span class="e">E4</span></td>
-      <td>창 아래에 세대 수, 살아 있는 세포 수, 현재 규칙과 함께 예측한 결말(소멸·정지·반복·미확정)과 남은 세대 수를 보여 준다. 예측한 소멸·정지에 도달하면 진행을 저절로 멈춘다.</td>
+      <td>창 아래에 세대 수, 살아 있는 세포 수, 현재 규칙과 함께 예측한 결말(소멸·정지·반복·미확정)과 남은 세대 수를 보여 준다. 예측한 결말이 소멸이나 정지이면 판이 그 세대에 이른 뒤 시계를 멈춘다.</td>
       <td>화면의 판과 따로 좌표만으로 앞을 계산하는 모델(<code>Generation</code>)과, 두 스레드 사이의 잠금·작업자 설계 (5장)</td></tr>
 </table>
 
-<p>이 프로젝트는 설계 개선과 기능 확장의 개수보다 설계 결정의 근거에 초점을 두었다. 4장(규칙 선택)과 5장(결말 예측과 자동 정지)에는 기능마다 원본과의 비교, 적용한 패턴, 검토한 다른 방법과 고른 이유를 적었다. 여러 결정은 두 방법을 작게 만들어 같은 판에서 돌려 본 결과를 보고 정했고 그 실험 코드는 저장소의 <code>docs/experiments/</code>에 남겨 두었다.</p>
+<p>이 프로젝트는 설계 개선과 기능 확장의 개수보다 설계 결정의 근거에 초점을 두었다. 4장(규칙 선택)과 5장(결말 예측과 자동 정지)에는 기능마다 원본과의 비교, 적용한 패턴, 검토한 다른 방법과 고른 이유를 적었다. 여러 결정은 두 방법을 작게 만들어 같은 판에서 돌려 본 결과를 보고 정했고, 그 실험 코드는 대부분 저장소의 <code>docs/experiments/</code>에 남겨 두었다.</p>
 
 <h2>개발 환경과 결과</h2>
-<table>
+<table class="compact">
   <tr><th style="width:24%">항목</th><th>내용</th></tr>
-  <tr><td>언어와 빌드</td><td>Java 21(Temurin), Gradle, JUnit 5. 실행은 <code>./gradlew run</code>, 테스트는 <code>./gradlew test</code></td></tr>
+  <tr><td>언어와 빌드</td><td>Java 21(Temurin), Gradle, JUnit 6(Jupiter). 실행은 <code>./gradlew run</code>, 테스트는 <code>./gradlew test</code></td></tr>
   <tr><td>원본</td><td>저장소의 <b>첫 커밋</b>(648d9bd)이 수정 전 원본이다. 원본과의 차이는 <code>git diff 648d9bd HEAD -- src/main</code>으로 볼 수 있다</td></tr>
   <tr><td>새로 만든 클래스</td><td>확장 1: <code>Rule</code>, <code>ConwayRule</code>, <code>HighLifeRule</code>, <code>BirthSurvivalRule</code>, <code>RuleHolder</code><br>확장 2: <code>Generation</code>, <code>EndingPredictor</code>, <code>Ending</code>, <code>LiveCellCollector</code>, <code>PredictionRequest</code>, <code>PredictionWorker</code>, <code>StatusLine</code></td></tr>
   <tr><td>고친 원본 클래스</td><td><code>Resident</code>(규칙 위임, <code>transition()</code> 반환값), <code>Universe</code>(메뉴, 예측 연결, 잠금, 자동 정지), <code>Neighborhood</code>(건너뛰기 조건 삭제), <code>Life</code>(상태 표시 한 줄)</td></tr>
   <tr><td>고치지 않은 원본 클래스</td><td><code>Cell</code>, <code>Clock</code>, <code>Publisher</code>, <code>Direction</code>, <code>MenuSite</code> 등</td></tr>
   <tr><td>테스트</td><td>JUnit 테스트 113개, 모두 통과 (6장). 구조를 바꾸기 전에 쓴 원본 동작 테스트 9개가 바꾼 뒤에도 수정 없이 통과한다</td></tr>
-  <tr><td>기록</td><td>설계 결정 기록(ADR) 5개 <code>docs/decisions/</code> · GitHub 커밋 90개, PR 16개 (8장)</td></tr>
+  <tr><td>기록</td><td>설계 결정 기록(ADR) 5개 <code>docs/decisions/</code> · GitHub 커밋 90개, PR 16개 (11/23 기준, 8장)</td></tr>
 </table>
 </section>

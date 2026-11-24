@@ -33,7 +33,7 @@ figure.half img { width: 70%; margin: 0 auto; }
 figcaption { margin-top: 2mm; font-size: 9pt; color: var(--muted); text-align: center; }
 .row { display: flex; gap: 4mm; }
 .row figure { flex: 1; margin: 3mm 0; }
-.row { width: 82%; margin: 0 auto; }
+.row { width: 64%; margin: 0 auto; }
 table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.3pt; }
 tr { break-inside: avoid; }
 th, td { text-align: left; vertical-align: top; padding: 1.8mm 2.5mm; border-bottom: .6pt solid var(--line); }
@@ -70,3 +70,18 @@ pre code { background: none; padding: 0; font-size: inherit; }
 
 .row.three { width: 100%; }
 .row.three figcaption { font-size: 8.2pt; }
+
+/* 목차 링크: 누르면 그 장·절로 간다. 글자 모양은 목차 그대로 */
+.toc a { color: inherit; text-decoration: none; }
+
+/* 쪽 나눔 (build.mjs가 붙이는 class와 함께 쓴다) */
+thead { display: table-header-group; }          /* 표가 다음 쪽으로 넘어가면 머리줄을 다시 찍는다 */
+table.keep { break-inside: avoid; }             /* 행이 몇 개뿐인 표는 쪽 사이에서 자르지 않는다 */
+.figblock { break-inside: avoid; }              /* UML 그림과 그 설명 문단을 한 쪽에 */
+p:has(+ pre), p:has(+ table), p:has(+ figure), p:has(+ .figblock), p:has(+ ol) { break-after: avoid; }
+p, li { orphans: 3; widows: 3; }                /* 문단의 마지막 한두 줄만 다음 쪽으로 넘어가지 않게 */
+table.compact { font-size: 9pt; }
+table.compact th, table.compact td { padding: 1.2mm 2.2mm; }
+.toc a { display: flex; justify-content: space-between; gap: 4mm; }
+.toc .pg { font-variant-numeric: tabular-nums; }
+.figblock figure img { width: 90%; margin: 0 auto; }   /* UML 그림은 조금 줄여 설명 문단과 한 쪽에 들어가게 */
