@@ -1,0 +1,127 @@
+<section class="chapter">
+<h1>4. 확장 1. 규칙 선택</h1>
+
+<h2>4-1. 요약</h2>
+<p class="lead">원본은 Conway 규칙이 <code>Resident</code> 안에 식 한 줄로 박혀 있어 규칙을 바꿀 수 없었다. 그 식을 <code>Rule</code> 객체로 빼내(Strategy) 실행 중에 갈아 끼울 수 있게 했다.</p>
+<ul>
+  <li><span class="e">E1</span> Rule 메뉴에서 Conway(B3/S23)와 HighLife(B36/S23) 중 하나를 고른다.</li>
+  <li><span class="e">E2</span> Rule &gt; Custom에 B/S 표기로 규칙을 직접 입력한다. 예를 들어 <code>B36/S23</code>은 "이웃이 3개나 6개면 태어나고 2개나 3개면 산다"는 뜻이다.</li>
+  <li>진행하는 도중에 바꿔도 판은 그대로 두고 다음 세대부터 새 규칙을 따른다. 판이 정지한 뒤에 바꿔도 반영된다.</li>
+</ul>
+<p>이 확장에서 내린 설계 결정은 세 가지다. 규칙을 둘 곳(결정 4-A), 규칙 보관함을 건네는 방법(결정 4-B), 정지한 판 버그를 고치는 방법(결정 4-C)이다.</p>
+
+<h2>4-2. 기존 코드와의 비교</h2>
+<p>바뀐 곳의 중심은 <code>Resident.figureNextState()</code>의 생사 판정 한 줄이다.</p>
+<table>
+  <tr><th style="width:12%"></th><th>생사 판정</th></tr>
+  <tr><td>원본</td><td><code>willBeAlive = (neighbors==3 || (amAlive &amp;&amp; neighbors==2));</code></td></tr>
+  <tr><td>변경 후</td><td><code>willBeAlive = holder.current().nextState(amAlive, neighbors);</code></td></tr>
+</table>
+<p>원본 그대로라면 규칙을 하나 더할 때마다 <code>Resident</code>를 고쳐야 하고 규칙이 늘수록 이 자리에 <code>if</code> 갈래가 늘어난다. HighLife 하나만 더해도 다음과 같이 된다.</p>
+<pre><code>if (지금규칙 == CONWAY)        willBeAlive = (neighbors==3 || (amAlive &amp;&amp; neighbors==2));
+else if (지금규칙 == HIGHLIFE) willBeAlive = (neighbors==3 || (amAlive &amp;&amp; neighbors==2) || (!amAlive &amp;&amp; neighbors==6));
+// 규칙이 하나 늘 때마다 else if가 하나씩 붙는다</code></pre>
+<p>처음 이 문제를 정리할 때의 말로 하면 "규칙을 바꾸려면 <code>Resident</code>를 고쳐야" 했다. 그래서 규칙을 <code>Resident</code> 밖의 새 인터페이스로 뺐다.</p>
+
+<figure>
+  <img src="fig4-1-rule-class.svg" alt="확장 1 변경 전과 후의 클래스 다이어그램">
+  <figcaption>그림 4-1. 확장 1 변경 전과 후 (확장 1을 마친 시점). 파란 테두리는 새로 만든 클래스</figcaption>
+</figure>
+
+<table>
+  <tr><th style="width:22%">클래스</th><th style="width:10%">구분</th><th>변경 내용</th></tr>
+  <tr><td><code>Rule</code></td><td>새로 만듦</td><td>인터페이스. <code>nextState(alive, neighbors)</code>로 다음 세대에 살아 있는지를 답한다</td></tr>
+  <tr><td><code>ConwayRule</code></td><td>새로 만듦</td><td>B3/S23. 원본 <code>Resident</code>에 있던 식이 이리로 옮겨 왔다</td></tr>
+  <tr><td><code>HighLifeRule</code></td><td>새로 만듦</td><td>B36/S23. Conway에 "죽은 칸의 이웃이 6개면 태어난다"가 더해진다</td></tr>
+  <tr><td><code>BirthSurvivalRule</code></td><td>새로 만듦</td><td>B/S 표기 문자열을 받아 만드는 규칙 (E2). 생성자에서 표기를 검사하고 틀리면 예외를 던진다</td></tr>
+  <tr><td><code>RuleHolder</code></td><td>새로 만듦</td><td>지금 쓰는 규칙 하나를 <code>volatile</code> 필드로 보관한다. <code>current()</code>, <code>change(Rule)</code></td></tr>
+  <tr><td><code>Resident</code></td><td>고침</td><td>판정하는 줄, <code>RuleHolder</code>를 생성자로 받아 필드에 두는 부분, <code>create()</code>가 같은 보관함을 넘겨주는 부분. 매개변수 없는 생성자는 남겨 기본값을 Conway로 했다</td></tr>
+  <tr><td><code>Universe</code></td><td>고침</td><td><code>RuleHolder</code>를 하나 만들어 견본 <code>Resident</code>에 넘긴다. Rule 메뉴 세 항목(Conway, HighLife, Custom)을 둔다</td></tr>
+  <tr><td><code>Neighborhood</code></td><td>고침</td><td>정지한 판에서 계산을 건너뛰던 조건 열 줄을 지웠다 (결정 4-C, 정지한 판 버그)</td></tr>
+  <tr><td><code>Cell</code></td><td>그대로</td><td>규칙에 관한 메서드를 더하지 않았다 (결정 4-A, 규칙을 둘 곳)</td></tr>
+</table>
+
+<h2>4-3. 적용한 설계 패턴과 원칙 (Strategy)</h2>
+<p><b>Strategy 패턴</b>은 바뀌는 알고리즘을 객체로 따로 빼서, 그것을 쓰는 쪽은 고치지 않고 알고리즘을 갈아 끼울 수 있게 하는 패턴이다. 이 프로젝트에서는 <code>ruleHolder.change(new HighLifeRule())</code> 한 줄이 규칙을 갈아 끼운다.</p>
+<table>
+  <tr><th style="width:24%">Strategy의 역할</th><th style="width:34%">이 프로젝트의 클래스</th><th>하는 일</th></tr>
+  <tr><td>Strategy</td><td><code>Rule</code></td><td>갈아 끼우는 알고리즘의 약속</td></tr>
+  <tr><td>ConcreteStrategy</td><td><code>ConwayRule</code>, <code>HighLifeRule</code>, <code>BirthSurvivalRule</code></td><td>실제 생사 판정</td></tr>
+  <tr><td>Context</td><td><code>Resident</code></td><td>매 세대 규칙에게 "이웃이 n개인데 다음에 살아 있나"를 묻고 그 답을 따른다</td></tr>
+</table>
+<p>규칙을 실제로 불러 쓰는 것은 <code>Resident</code>이므로 Context는 <code>Resident</code>다. <code>RuleHolder</code>는 4,096개의 Context가 같은 Strategy를 보게 하려고 사이에 둔 보관함이다(결정 4-B, 규칙 보관함을 건네는 방법). 같은 <code>Resident</code>에 규칙만 바꿔 끼우면 결과가 달라지는 것을 실행해 확인했다. 죽은 칸과 살아 있는 이웃 6개를 두고 물었을 때, 보관함에 <code>ConwayRule</code>이 있으면 "죽어 있다", <code>HighLifeRule</code>로 바꾸면 "산다"였다. <code>Resident</code> 코드는 한 글자도 바뀌지 않았다.</p>
+
+<figure>
+  <img src="fig4-2-rule-seq.svg" alt="규칙을 바꾼 뒤 한 세대의 시퀀스 다이어그램">
+  <figcaption>그림 4-2. 규칙을 HighLife로 바꾼 뒤 한 세대가 진행되는 과정</figcaption>
+</figure>
+
+<p><b>왜 Strategy인가.</b> 바뀌는 것은 생사를 정하는 식 하나이고 그 식을 쓰는 곳(<code>Resident</code>)은 바뀌지 않는다. 이 둘을 떼어 놓으면 규칙을 더할 때 <code>Rule</code> 구현체와 메뉴 항목만 추가하면 된다. 실제로 <code>ConwayRule</code> 다음에 <code>HighLifeRule</code>과 <code>BirthSurvivalRule</code>을 더할 때 <code>Resident</code>는 고치지 않았다. 규칙을 더해도 기존 코드를 고치지 않는다는 점에서 개방-폐쇄 원칙(OCP)을 따른다. 다만 수정이 0인 것은 아니다. <code>Universe</code>에는 메뉴 항목이 하나씩 더해진다. Strategy가 아닌 다른 방법(예: 규칙마다 <code>Resident</code>의 하위 클래스를 두는 것)을 따로 만들어 비교하지는 않았다. 위의 <code>if</code> 갈래가 늘어나는 모습을 기준으로 판단했다.</p>
+<p>규칙만 따로 테스트할 수 있게 된 것도 효과다. 원본에서는 규칙을 확인하려면 <code>Resident</code>와 이웃 8칸을 만들어야 했지만 지금은 <code>rule.nextState(true, 2)</code> 한 줄이다. 이웃 수 0~8을 모두 확인하는 <code>ConwayRuleTest</code>, <code>HighLifeRuleTest</code>가 이렇게 쓰였다.</p>
+
+<h3>기존 <code>ConwayRule</code>, <code>HighLifeRule</code>을 남긴 이유</h3>
+<p>E2의 <code>BirthSurvivalRule("B3/S23")</code>은 <code>ConwayRule</code>과 똑같이 동작하므로 이름 있는 규칙 클래스를 지울 수도 있었다. 남긴 이유는 두 가지다. 기존 코드를 고치지 않고 추가만으로 기능을 넣고 싶었고 직접 입력으로 만든 규칙을 기존 규칙과 비교하는 테스트를 쓸 수 있었다(<code>BirthSurvivalRuleTest</code>는 <code>"B3/S23"</code>과 <code>ConwayRule</code>, <code>"B36/S23"</code>과 <code>HighLifeRule</code>이 18가지 경우에서 같은 답을 내는지 본다). 대가는 Conway를 만드는 길이 둘이 된다는 것이다. 이것은 아무것도 지우지 않는 쪽을 고른 것이라 따로 대안을 저울질한 결정으로 보지 않았다.</p>
+
+<h2>4-4. 설계 결정과 대안</h2>
+<table>
+  <tr><th style="width:10%">번호</th><th style="width:34%">주제</th><th>고른 것</th></tr>
+  <tr><td>4-A</td><td>규칙을 둘 곳</td><td><code>Resident</code>만 규칙을 안다 (<code>Cell</code>은 그대로)</td></tr>
+  <tr><td>4-B</td><td>규칙 보관함을 건네는 방법</td><td>생성자로 넘긴다 (Singleton으로 하지 않음)</td></tr>
+  <tr><td>4-C</td><td>정지한 판 버그</td><td>건너뛰기 조건을 없앤다</td></tr>
+</table>
+
+<h3>결정 4-A. 규칙을 둘 곳: <code>Cell</code>에 드러낼까, <code>Resident</code>만 알게 할까</h3>
+<p><b>문제.</b> 판정을 <code>rule.nextState(...)</code>로 바꾸자 <code>rule</code>이 없다는 컴파일 오류가 났다. 가장 단순하게 <code>Resident</code>에 <code>private Rule rule = new ConwayRule();</code> 필드를 두니 기존 테스트 9개는 그대로 통과했다. 그러나 <code>Resident</code>는 4,096개이고 각자 규칙 객체를 따로 갖게 되어, 메뉴에서 규칙을 바꿀 때 한꺼번에 바꿀 방법이 없었다. 처음 떠올린 생각은 "상위 수준에서 적용해야 하지 않나"였고 여기서 네 가지 방법이 나왔다. 이 결정은 그중 위에서 아래로 규칙을 내려보낼 것인가를 가른다.</p>
+<table>
+  <tr><th style="width:18%">대안</th><th>구현 방법</th><th style="width:26%">장점</th><th style="width:30%">단점</th></tr>
+  <tr><td>C. 매개변수로 전달</td><td><code>figureNextState(Rule rule, Cell north, …)</code>. <code>Universe</code>가 매 세대 넘기고 <code>Neighborhood</code>가 아래로 그대로 넘긴다</td><td>전역 상태가 없다. 이웃 8칸을 매개변수로 넘기는 원본 방식과 같은 생각이다</td><td><code>Cell</code> 인터페이스가 바뀌어 <code>Resident</code>, <code>Neighborhood</code>, <code>Cell.DUMMY</code>, <code>Universe</code>를 모두 고친다. 기존 테스트 9개도 모두 고쳐야 한다</td></tr>
+  <tr><td>D. <code>setRule()</code> 위임</td><td><code>Cell</code>에 <code>setRule()</code>을 더하고 원본 <code>clear()</code>처럼 <code>Neighborhood</code>가 칸마다 넘긴다</td><td><code>Universe</code>는 <code>outermostCell.setRule()</code> 한 번이면 된다. 원본의 Composite 위임과 같은 모양이다</td><td>규칙을 쓰지 않는 <code>Neighborhood</code>와 <code>Cell.DUMMY</code>도 규칙 메서드를 구현해야 한다. <code>Cell</code>이 커진다</td></tr>
+  <tr><td class="chosen">A·B. <code>Resident</code>만 규칙을 안다</td><td class="chosen">4,096개의 <code>Resident</code>가 규칙 보관 객체(<code>RuleHolder</code>) 하나를 함께 본다. 보관 객체 속 규칙만 바꾸면 모두가 다음 판정부터 새 규칙을 쓴다</td><td class="chosen"><code>Cell</code>과 <code>Neighborhood</code>를 고치지 않는다. 기존 테스트가 그대로 통과한다</td><td class="chosen"><code>Universe</code>가 <code>Cell</code> 타입의 판을 통해 규칙을 전할 수 없다. 보관 객체를 공유하는 방법을 따로 정해야 한다(결정 4-B, 규칙 보관함을 건네는 방법)</td></tr>
+</table>
+<p><b>선택: <code>Resident</code>만 규칙을 알게 한다.</b> 규칙으로 생사를 판정하는 것은 <code>Resident</code>뿐이다. 위에서 아래로 내려보내는 C와 D는 규칙을 쓰지 않는 클래스까지 규칙 코드를 갖게 한다. C는 기존 테스트 9개를 모두 고쳐야 해서, 구조를 바꾼 뒤에도 기존 테스트가 그대로 통과한다는 것을 보이려는 목적과 맞지 않았다.</p>
+<p><b>이미 있는 같은 문제.</b> 원본 <code>Cell</code>에는 가장 바깥 구역에만 의미가 있는 <code>createMemento()</code>가 있어서, <code>Resident</code>에서 부르면 실행 중에 예외를 던진다. D의 <code>setRule()</code>은 반대로 <code>Resident</code>에만 의미가 있는 메서드다. 이것을 <code>Cell</code>에 두면 쓰지 않는 클래스가 의미 없는 메서드를 갖는 경우를 하나 더 만든다고 보았다.</p>
+<p><b>포기한 것.</b> D의 장점인 "<code>Universe</code>가 호출 한 번으로 끝낸다"와 원본 위임 방식과의 일관성.</p>
+
+<h3>결정 4-B. 규칙 보관함을 건네는 방법: Singleton인가, 생성자인가</h3>
+<p><b>문제.</b> 결정 4-A로 4,096개가 <code>RuleHolder</code> 하나를 함께 보기로 했다. <code>Resident</code>가 그 하나를 어떻게 얻느냐가 남았다.</p>
+<table>
+  <tr><th style="width:18%">대안</th><th>구현 방법</th><th style="width:26%">장점</th><th style="width:30%">단점</th></tr>
+  <tr><td>A. Singleton</td><td><code>RuleHolder.instance().current().nextState(...)</code>. 판정할 때마다 꺼낸다</td><td><code>Resident</code> 수정이 한 줄이다. 원본의 <code>Universe.instance()</code>, <code>Clock.instance()</code>와 같은 방식이다</td><td>의존이 메서드 본문을 읽어야 드러난다. 전역 상태라 한 테스트에서 바꾼 규칙이 다음 테스트에 남는다</td></tr>
+  <tr><td class="chosen">B. 생성자로 전달</td><td class="chosen"><code>new Resident(holder)</code>. <code>create()</code>가 같은 <code>holder</code>를 넘겨 복제본 4,096개가 같은 보관함을 본다</td><td class="chosen">무엇에 의존하는지 생성자에 드러난다. 테스트마다 자기 <code>RuleHolder</code>를 만들 수 있다</td><td class="chosen"><code>Resident</code>의 필드·생성자·<code>create()</code>와 <code>Universe</code>를 고친다. <code>create()</code>에서 넘기기를 빠뜨리면 일부만 다른 보관함을 갖는다</td></tr>
+</table>
+<p><b>선택: B.</b> 결정할 때의 정리는 이랬다.</p>
+<p class="quote">A는 테스트 실행 한 번에서 모든 테스트가 하나의 규칙 상태를 보고, B는 테스트마다 정할 수 있다.</p>
+<p><code>./gradlew test</code> 한 번은 프로그램 실행 한 번이고 그 안에서 테스트 메서드들이 차례로 불린다. A에서는 <code>RuleHolderTest</code>가 HighLife로 바꾼 뒤 <code>ResidentTest</code>의 "죽은 셀은 이웃이 6개여도 살아나지 않는다"가 실행되면 실패한다. 두 방식으로 같은 검사 두 개를 차례로 돌려 보니 A에서는 두 번째가 실패했고 B에서는 통과했다. <code>RuleHolder</code>에 필요한 것은 유일함이 아니라 <code>Resident</code>들이 같은 객체를 공유하는 것이고 공유는 같은 참조를 넘기는 것으로 충분하다. 2장의 Prototype 구조 덕분에 견본 하나에 넣어 두면 복제본이 같은 참조를 물려받는다.</p>
+<p><b>포기한 것과 막은 방법.</b> A의 한 줄 수정과 원본 방식과의 일관성을 포기했다. <code>create()</code>에서 넘기기를 빠뜨릴 위험은 "<code>create()</code>로 복제한 <code>Resident</code>는 같은 <code>RuleHolder</code>를 공유한다" 테스트로 막는다. 세대 진행은 시계 스레드에서, 규칙 변경은 메뉴 스레드에서 일어나므로 <code>RuleHolder</code>의 필드는 <code>volatile</code>로 했다.</p>
+
+<h3>결정 4-C. 정지한 판 버그: 건너뛰기를 없앨까, 판을 깨울까</h3>
+<p><b>문제.</b> 계속 움직이는 판에서는 규칙 교체가 잘 됐지만 모든 칸이 더 변하지 않게 된 판에서는 규칙을 바꿔도 반영되지 않았다. 재현은 Conway에서 변하지 않는 모양인 Ship(6칸)으로 했다. 가운데 빈칸의 이웃이 6개라 HighLife로 바꾸면 그 칸이 태어나야 하는데 그대로였다. 원인은 2-3절의 건너뛰기 조건이었다. 당시 이해한 말로는 "조용해진 판은 이전과 변화가 없으니 이번에도 같겠지 하고 검사 자체를 안 한다." 규칙이 고정된 원본에서는 맞는 생각이지만 규칙이 바뀌면 이전에 변화가 없었더라도 변화가 생길 수 있다.</p>
+<table>
+  <tr><th style="width:18%">대안</th><th>구현 방법</th><th style="width:26%">장점</th><th style="width:30%">단점</th></tr>
+  <tr><td class="chosen">가. 건너뛰는 조건을 없앤다</td><td class="chosen"><code>Neighborhood.figureNextState()</code>의 <code>if</code> 조건 열 줄을 지운다. 매 세대 모든 칸이 계산한다</td><td class="chosen">한 곳만 고친다. 규칙을 바꾸는 쪽에서 할 일이 없어 빠뜨릴 것도 없다</td><td class="chosen">Holub의 건너뛰기 최적화가 없어진다. 원본 <code>Neighborhood</code>를 처음으로 고친다</td></tr>
+  <tr><td>나. 판을 깨우는 메서드</td><td><code>Cell</code>에 깨우는 메서드를 더해 <code>clear()</code>처럼 위임하고 규칙을 바꿀 때 <code>Universe</code>가 부른다</td><td>최적화가 그대로 남는다</td><td>다섯 곳(<code>Cell</code>, <code>Cell.DUMMY</code>, <code>Neighborhood</code>, <code>Resident</code>, <code>Universe</code>)을 고친다. 규칙 메뉴가 늘 때 호출을 빠뜨리면 같은 문제가 다시 생긴다</td></tr>
+  <tr><td>다. 판을 건드려 깨운다</td><td>원본은 두고, <code>Universe</code>가 <code>userClicked()</code> 등으로 판을 건드려 다시 계산하게 한다</td><td>원본 클래스를 고치지 않는다</td><td>세포를 켜고 끄는 메서드를 다른 용도로 쓴다. 두 번 해 본 실험에서 한 번은 그대로, 한 번은 한 세대 늦게 반영돼 확실하지 않았다</td></tr>
+</table>
+<p><b>선택: 가.</b> 처음에는 최적화를 남길 수 있는 나가 유력해 보였다. 그런데 그 최적화가 실제로 얼마나 아끼는지 몰랐기 때문에 "재 보고 정하자"고 했다. <code>Rule.nextState()</code>가 불린 횟수를 세는 규칙을 끼워 재 보니, 당시 코드에서 건너뛰기는 판 전체가 정지했을 때만 작동했다. 빈 판과 Ship만 있는 판은 세대당 0칸을 계산했지만 Blinker 하나만 있어도 4,096칸을 모두 계산했다(이 측정에는 아래 "나중에 알게 된 것"이 있다). 4,096칸을 모두 계산하는 데는 세대당 0.085ms(Blinker 하나)에서 0.17ms(무작위 30% 판)가 걸렸고 가장 빠른 속도(Go &gt; Fast)의 세대 간격은 30ms다. 또 가는 재현 테스트를 한 글자도 고치지 않고 통과하지만 나는 테스트에 깨우는 호출을 넣어야 통과한다. 결정 4-A에서 <code>Cell</code>에 규칙 때문에 메서드를 늘리지 않기로 한 것과도 같은 방향이다. 나와 4-A의 D는 같은 메서드가 아니다. 당시의 구분으로 "<code>setRule</code>은 규칙을 넘기는 거고 깨우는 건 다시 계산하라는 거"다. 그래도 규칙을 바꾸는 기능 때문에 <code>Cell</code>이 커진다는 점은 같았다.</p>
+<p><b>정한 뒤에 정리한 것.</b> 건너뛸지를 정하는 <code>amActive</code>는 <code>Neighborhood</code>의 필드이고 Leaf인 <code>Resident</code>에는 깨울 것이 없다. 나를 고르면 <code>Resident</code>와 <code>Cell.DUMMY</code>는 아무 일도 하지 않는 메서드를 갖게 된다. 4-A의 <code>setRule()</code>은 <code>Resident</code>에만, 나의 메서드는 <code>Neighborhood</code>에만 의미가 있어 방향이 반대이지만 두 번 다 <code>Cell</code>에 메서드를 더하지 않는 쪽을 골랐다. 결정할 때 쓴 이유는 아니다.</p>
+<p><b>포기한 것.</b> 판 전체가 정지해 있을 때도 매 세대 4,096칸을 계산한다.</p>
+<p><b>나중에 알게 된 것.</b> 위의 "Blinker 하나만 있어도 4,096칸"은 원본의 다른 버그 때문이었다. 원본 <code>Resident.transition()</code>은 바뀌지 않은 칸에도 "바뀌었다"(<code>true</code>)고 답했고, <code>Neighborhood</code>는 그 답을 보고 구역의 가장자리를 모두 "변했다"고 표시했다. 그래서 세포가 하나라도 움직이면 다음 세대에 모든 구역이 계산했다. 이 버그는 다음 날 확장 2에서 고쳤다(결정 5-F, 화면 갱신 버그). 고친 코드에 건너뛰기 조건만 되살려 다시 재 보니, Blinker 하나만 있는 판에서 2세대부터 계산한 칸은 4,096칸이 아니라 64칸(Blinker가 있는 구역 하나)이었다(<code>docs/experiments/skip-check/run.sh</code>).</p>
+<table>
+  <tr><th>Blinker 하나만 있는 판</th><th style="width:22%">1세대</th><th style="width:22%">2세대부터</th></tr>
+  <tr><td>건너뛰기 + 원본 <code>transition()</code> (결정할 때의 상태)</td><td>64칸</td><td>4,096칸</td></tr>
+  <tr><td>건너뛰기 + 고친 <code>transition()</code></td><td>64칸</td><td>64칸</td></tr>
+</table>
+<p>따라서 이 결정으로 포기한 최적화는 결정할 때 생각한 것보다 크다. 그래도 결정은 바꾸지 않았다. 4,096칸을 모두 계산해도 세대당 0.17ms를 넘지 않아 가장 빠른 세대 간격(30ms)에 비해 작다는 이유, 재현 테스트가 그대로 통과하고 <code>Cell</code>에 메서드를 더하지 않는다는 이유는 그대로 성립한다. 이 사실을 안 것은 코드 동결(11/23) 뒤였다. 판이 커지거나 세대 간격이 짧아지면 나를 다시 검토할 것이다. 지금은 규칙을 바꾸는 길이 <code>changeRule()</code> 하나로 모였으므로(결정 5-B, 규칙 변경 뒤 다시 예측) 나의 단점이던 "깨우는 호출을 빠뜨릴 위험"도 처음보다 작다.</p>
+
+<h2>4-5. 구현 결과와 확인</h2>
+<ul>
+  <li>원본 동작 테스트 <code>ResidentTest</code> 9개는 구조를 바꾸기 전에 썼고 바꾼 뒤에도 수정 없이 통과한다.</li>
+  <li>규칙 단위 테스트(<code>ConwayRuleTest</code> 6, <code>HighLifeRuleTest</code> 8, <code>BirthSurvivalRuleTest</code> 8), 보관함과 공유(<code>RuleHolderTest</code> 3, <code>ResidentRuleTest</code> 3), 실제 64×64 판에서의 진행(<code>NeighborhoodRuleTest</code> 10)을 확인한다. 판 테스트에는 도중 교체, 구역 경계에 걸친 Blinker, 무작위 판 세 가지의 세포 수를 원본과 비교하는 것, 결정 4-C의 재현 테스트가 들어 있다. 재현 테스트는 고치기 전에 <code>expected: &lt;7&gt; but was: &lt;6&gt;</code>으로 실패했다.</li>
+  <li>판 테스트에는 한계가 있다. 당시의 말로 "판 테스트가 결국 일정 시나리오를 확인하는 수준에 그친다." 모든 배치에서 맞다는 것을 보이지는 못한다.</li>
+  <li>E2의 표기는 <code>B[0-8]*/S[0-8]*</code> 모양만 받는다. 대문자 B와 S만 받고 공백은 받지 않는다. 틀리면 안내 창을 띄우고 이전 규칙을 그대로 둔다. 규칙 이름은 각 규칙의 <code>toString()</code>이 B/S 표기로 돌려주고 창 아래 윗줄에 표시된다.</li>
+</ul>
+<div class="row">
+  <figure><img class="shot" src="img/run-blinker.png" alt="Conway로 도는 Blinker"><figcaption>그림 4-3. Conway(B3/S23)로 도는 가로 3칸</figcaption></figure>
+  <figure><img class="shot" src="img/run-rule-highlife.png" alt="도는 중에 HighLife로 바꾼 뒤"><figcaption>그림 4-4. 도는 중에 Rule &gt; HighLife를 고른 뒤. 윗줄의 규칙이 B36/S23으로 바뀌었다</figcaption></figure>
+</div>
+</section>
