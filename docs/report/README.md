@@ -1,26 +1,29 @@
 # 프로젝트 문서(보고서) 원본
 
-제출하는 보고서 PDF의 원본을 모아 둔다. 각 쪽은 HTML로 쓰고 Chrome의 PDF 인쇄로 만든다.
-
-| 파일 | 내용 |
-|---|---|
-| `cover.html` | 표지 |
-| `cau-logo.png` | 표지의 중앙대 로고. 학교 홈페이지 상단 로고 파일을 받은 것이다 |
-| `usecase.mjs` | 유스케이스 다이어그램을 그리는 코드. `usecase.svg`와 `usecase.html`을 만든다 |
-| `usecase.svg` | 유스케이스 다이어그램 (3장) |
+제출하는 보고서 PDF의 원본이다. 장마다 HTML 조각으로 쓰고, `build.mjs`가 이어 붙여 Chrome의 PDF 인쇄로 만든다.
 
 ## PDF 만들기
 
-`holub-life` 폴더에서 실행한다.
+`holub-life` 폴더에서 실행한다. `docs/report/report.pdf`가 생긴다.
 
 ```bash
-node docs/report/usecase.mjs docs/report
+node docs/report/build.mjs
 ```
 
-```bash
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-"$CHROME" --headless=new --no-pdf-header-footer --print-to-pdf=/tmp/cover.pdf "file://$PWD/docs/report/cover.html"
-"$CHROME" --headless=new --no-pdf-header-footer --print-to-pdf=/tmp/usecase.pdf "file://$PWD/docs/report/usecase.html"
-```
+만든 PDF와 중간 파일(`report.html`, `usecase.html`)은 저장소에 넣지 않는다.
 
-만든 PDF는 저장소에 넣지 않는다. 제출할 때 한 번에 만든다.
+## 파일
+
+| 파일 | 내용 |
+|---|---|
+| `chapters/00-cover.html` ~ `08-github.html` | 표지·목차와 1~8장. 파일 이름 순서대로 이어 붙인다 |
+| `report.css` | 공통 모양 (A4, 쪽 번호, 표, 코드, 표지) |
+| `uml.mjs` | UML 그림을 그리는 작은 도구. 표기는 수업 자료의 그림을 따른다 |
+| `diagrams.mjs` | 보고서의 UML 그림(`fig*.svg`)을 만든다. `build.mjs`가 먼저 실행한다 |
+| `usecase.mjs`, `usecase.svg` | 3장 유스케이스 다이어그램 |
+| `img/` | 실행 화면, 테스트 결과, GitHub 화면 캡처 |
+| `cau-logo.png` | 표지의 중앙대 로고. 학교 홈페이지 상단 로고 파일을 받은 것이다 |
+
+## 내용의 출처
+
+4·5장의 설계 결정은 `docs/decisions/`의 ADR 001~005와 `docs/features/확장2-결말-예측.md`를 옮겨 정리했다. 숫자는 `docs/experiments/`의 실험 코드로 잰 것이다.

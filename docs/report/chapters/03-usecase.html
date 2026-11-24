@@ -1,0 +1,24 @@
+<section class="chapter">
+<h1>3. 유스케이스 다이어그램</h1>
+
+<p class="lead">이번 프로젝트로 사용자는 Life Game의 규칙을 새로 정의해 적용할 수 있고 판이 어떤 결말에 이를지 미리 알 수 있게 됐다.</p>
+
+<figure style="width:86%;margin-left:auto;margin-right:auto">
+  <img src="usecase.svg" alt="Life Game 유스케이스 다이어그램">
+  <figcaption>그림 3-1. Life Game 유스케이스 다이어그램</figcaption>
+</figure>
+
+<p>기존 기능 8개는 원본 Life Game의 메뉴(Grid, Go)와 판 클릭에서 그대로 가져왔다. 이 기능들은 이번 프로젝트 뒤에도 원본과 같이 동작한다. 확장한 기능은 이름 앞에 E를 붙이고 색으로 구분했다.</p>
+
+<table>
+  <tr><th style="width:26%">확장한 기능</th><th>사용자가 하는 일과 보는 것</th><th style="width:10%">설명</th></tr>
+  <tr><td><span class="e">E1</span> 규칙 선택</td><td>Rule 메뉴에서 Conway(B3/S23)나 HighLife(B36/S23)를 고른다. 진행하는 도중에도 바꿀 수 있고 다음 세대부터 새 규칙을 따른다.</td><td class="ref">4장</td></tr>
+  <tr><td><span class="e">E2</span> 규칙 직접 입력</td><td>Rule &gt; Custom에 B/S 표기(예: B36/S23)로 규칙을 적으면 그 규칙으로 진행한다. 표기가 틀리면 알리고 이전 규칙을 그대로 둔다.</td><td class="ref">4장</td></tr>
+  <tr><td><span class="e">E3</span> 결말 예측 보기</td><td>창 아래에 세대 수, 살아 있는 세포 수, 현재 규칙과 함께, 예측한 결말(소멸·정지·반복·미확정)과 거기까지 남은 세대 수를 보여 준다. 판이나 규칙이 바뀌면 다시 예측한다.</td><td class="ref">5장</td></tr>
+  <tr><td><span class="e">E4</span> 자동 정지</td><td>예측한 결말이 소멸이나 정지이고 판이 그 세대에 도달하면 진행을 멈춘다.</td><td class="ref">5장</td></tr>
+</table>
+
+<p>E1과 E2가 "규칙을 새로 정의해 적용한다"에, E3과 E4가 "결말을 미리 안다"에 해당한다.</p>
+
+<p>E4는 사용자가 직접 실행하는 기능이 아니다. 세대가 진행되는 동안 조건이 맞을 때 덧붙는 동작이라, 사용자와 잇지 않고 «extend»로 세대 진행에 연결했다. 반복으로 예측된 판에서는 멈추지 않는다. 판이 계속 움직이기 때문이다.</p>
+</section>

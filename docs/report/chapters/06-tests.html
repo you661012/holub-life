@@ -1,0 +1,363 @@
+<section class="chapter">
+<h1>6. 테스트 수행 내역</h1>
+
+<p class="lead">JUnit 테스트 113개가 모두 통과한다. 원본 동작이 그대로인지, 확장한 기능이 맞게 동작하는지, 구조를 바꾼 뒤에도 결과가 같은지를 나눠 확인한다.</p>
+
+<p>테스트는 기능보다 먼저 쓰는 것을 원칙으로 했다. 원본 동작 테스트(<code>ResidentTest</code>)는 구조를 바꾸기 전에 썼고 새 클래스도 테스트를 먼저 쓰고 실패를 본 뒤 구현하는 것을 원칙으로 했다. 결함을 고칠 때는 재현 테스트가 실패하는 것을 먼저 확인했다. 처음부터 통과한 테스트는 실제로 잘못을 잡는지 알 수 없어서 중요한 비교 테스트는 코드를 일부러 틀리게 고쳐 실패하는 것을 한 번씩 확인했다.</p>
+
+<figure class="half">
+  <img class="shot" src="img/test-report.png" alt="Gradle 테스트 결과 리포트">
+  <figcaption>그림 6-1. <code>./gradlew test</code> 결과 리포트 (11/23, 113개 통과, 실패 0)</figcaption>
+</figure>
+<h2>6-1. 테스트 구성</h2>
+<p>테스트는 JUnit 5로 작성했고 클래스 17개, 테스트 메서드 113개다. 모두 <code>src/test/java/com/holub/life/</code>에 있다. 아래 표는 기존 기능, 확장 1(규칙 선택), 확장 2(결말 예측과 자동 정지) 순으로 묶었다.</p>
+<p><code>RuleToStringTest</code>는 규칙 클래스를 시험하지만 확장 2로 옮겼다. 규칙의 <code>toString()</code>은 창 아래 윗줄의 Rule 칸에 띄우려고 화면 연결 때 추가한 것이기 때문이다. <code>ResidentTransitionTest</code>는 원본 클래스 <code>Resident</code>가 <code>Cell</code> 인터페이스의 약속을 지키는지 보는 테스트라 기존 기능에 두었다. 다만 원본 코드는 이 약속과 반대로 값을 돌려주고 있었고 이 테스트는 그것을 고친 뒤의 동작을 확인한다.</p>
+<table>
+<tr><th>테스트 클래스</th><th>개수</th><th>대상</th><th>무엇을 보증하나</th></tr>
+<tr><td colspan="4">기존 기능 (18개)</td></tr>
+<tr><td><code>DirectionTest</code></td><td>5</td><td><code>Direction</code></td><td>원본의 방향 비트 묶음이 더하기, 지우기, 상수 보호를 원래대로 한다.</td></tr>
+<tr><td><code>ResidentTest</code></td><td>9</td><td><code>Resident</code></td><td>칸 하나의 Conway 판정이 규칙을 <code>Rule</code>로 떼어 낸 뒤에도 원본과 같다. 리팩터링 전에 작성했고 수정 없이 통과한다.</td></tr>
+<tr><td><code>ResidentTransitionTest</code></td><td>4</td><td><code>Resident.transition()</code></td><td>상태가 바뀌었을 때만 <code>true</code>를 돌려준다는 <code>Cell</code> 인터페이스의 약속을 지킨다.</td></tr>
+<tr><td colspan="4">확장 1: 규칙 선택 (38개)</td></tr>
+<tr><td><code>ConwayRuleTest</code></td><td>6</td><td><code>ConwayRule</code></td><td>Conway 규칙(B3/S23)을 이웃 수 0~8 모든 경우에 맞게 판정한다.</td></tr>
+<tr><td><code>HighLifeRuleTest</code></td><td>8</td><td><code>HighLifeRule</code></td><td>HighLife 규칙(B36/S23)을 맞게 판정하고 Conway와는 죽은 칸의 이웃 6개에서만 다르다.</td></tr>
+<tr><td><code>BirthSurvivalRuleTest</code></td><td>8</td><td><code>BirthSurvivalRule</code></td><td>B/S 표기 문자열로 만든 규칙이 이름 있는 규칙과 같게 판정하고 잘못된 표기는 객체를 만들 때 거부한다.</td></tr>
+<tr><td><code>RuleHolderTest</code></td><td>3</td><td><code>RuleHolder</code></td><td>처음에는 Conway를 들고 있고 바꾼 규칙을 돌려주며 인스턴스끼리 상태를 나누지 않는다.</td></tr>
+<tr><td><code>ResidentRuleTest</code></td><td>3</td><td><code>Resident</code> + <code>RuleHolder</code></td><td><code>Resident</code>가 전달받은 <code>RuleHolder</code>의 현재 규칙으로 판정하고, <code>create()</code>로 만든 복제본도 같은 <code>RuleHolder</code>를 쓴다.</td></tr>
+<tr><td><code>NeighborhoodRuleTest</code></td><td>10</td><td>64×64 <code>Neighborhood</code> 판</td><td>판 전체에서 규칙대로 여러 세대가 진행되고 도중에 규칙을 바꾸면 다음 세대부터 반영되며, <code>Neighborhood</code>를 고친 뒤에도 원본과 세포 수가 같다.</td></tr>
+<tr><td colspan="4">확장 2: 결말 예측과 자동 정지 (57개)</td></tr>
+<tr><td><code>RuleToStringTest</code></td><td>3</td><td>규칙 셋의 <code>toString()</code></td><td>창 아래에 띄울 규칙 이름이 B/S 표기로 나온다.</td></tr>
+<tr><td><code>GenerationTest</code></td><td>10</td><td><code>Generation</code></td><td>좌표 집합과 <code>Rule</code>만으로 다음 세대를 맞게 계산하고 만든 뒤에는 바뀌지 않는다.</td></tr>
+<tr><td><code>GenerationMatchesBoardTest</code></td><td>5</td><td><code>Generation</code> 대 <code>Neighborhood</code> 판</td><td>세대를 진행하는 코드 두 벌이 매 세대 살아 있는 칸의 위치까지 같다.</td></tr>
+<tr><td><code>EndingPredictorTest</code></td><td>12</td><td><code>EndingPredictor</code>, <code>Ending</code></td><td>소멸, 정지, 반복, 미확정을 몇 세대 뒤인지까지 맞게 답하고 한도 근처에서도 답이 맞다.</td></tr>
+<tr><td><code>EndingMatchesBoardTest</code></td><td>3</td><td><code>EndingPredictor</code> 대 <code>Neighborhood</code> 판</td><td>직접 입력할 수 있는 특이한 규칙 10개와 Conway·HighLife에서 예측한 결말이 실제 판의 진행과 맞는다.</td></tr>
+<tr><td><code>LiveCellCollectorTest</code></td><td>2</td><td><code>LiveCellCollector</code></td><td>화면의 판에서 살아 있는 칸의 좌표를 빠짐없이 그대로 읽어 온다.</td></tr>
+<tr><td><code>PredictionWorkerTest</code></td><td>4</td><td><code>PredictionWorker</code></td><td>작업자 스레드 하나가 최신 요청만 계산하고 결과를 요청과 함께 전하며 실패한 뒤에도 계속 일한다.</td></tr>
+<tr><td><code>StatusLineTest</code></td><td>18</td><td><code>StatusLine</code></td><td>창 아래 두 줄의 글자와 색이 맞고 옛 예측을 버리며 진행한 세대만큼 남은 세대를 줄이고 자동 정지할 때를 맞게 판단한다.</td></tr>
+<tr><td>합계</td><td>113</td><td></td><td></td></tr>
+</table>
+
+<h2>6-2. 테스트 케이스별 목적</h2>
+<p>분류는 네 가지로 나눴다. 기존은 원래 있던 동작이 그대로인지, 확장은 새 기능이 동작하는지, 경계는 잘못된 입력이나 판 끝, 한도 같은 가장자리 경우를, 설계는 구조를 바꿔도 결과가 같은지 또는 불변성, 공유, 스레드 같은 설계상의 성질을 본다. 만든 목적 칸에는 그 테스트가 없으면 무엇을 놓치게 되는지를 적었다.</p>
+
+<h3>DirectionTest (5개)</h3>
+<p>원본 클래스 <code>Direction</code>을 대상으로 빌드와 테스트 환경이 돌아가는지 처음 확인할 때 만든 테스트다. <code>Direction</code>은 화면과 무관해 바로 시험할 수 있었다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>새로_만든_Direction은_아무_방향도_갖지_않는다</code></td><td>기존</td><td>기본 생성자로 만든 객체가 <code>NONE</code>과 같지 않게 시작해도 알 수 없다.</td></tr>
+<tr><td><code>add한_방향만_the로_참이_된다</code></td><td>기존</td><td><code>add</code>가 넣지 않은 방향의 비트까지 켜도 알 수 없다.</td></tr>
+<tr><td><code>여러_방향을_add하면_모두_포함된다</code></td><td>기존</td><td>북과 서를 더했을 때 따로 있는 북서 비트가 함께 켜지는 실수를 놓친다.</td></tr>
+<tr><td><code>clear하면_NONE으로_돌아간다</code></td><td>기존</td><td><code>clear</code> 뒤에 비트가 남아 있어도 알 수 없다.</td></tr>
+<tr><td><code>상수_Direction은_수정할_수_없다</code></td><td>설계</td><td>여러 곳이 함께 쓰는 상수 <code>NORTH</code>, <code>NONE</code>을 고칠 수 있게 되어도 알 수 없다.</td></tr>
+</table>
+
+<h3>ResidentTest (9개)</h3>
+<p>11월 10일까지 작성했고 규칙을 <code>Rule</code>로 떼어 낸 11월 11일의 리팩터링보다 앞선다. 이후 한 줄도 고치지 않았고 지금도 통과한다. 인자 없는 <code>new Resident()</code>는 기본값 Conway를 담은 <code>RuleHolder</code>를 만들기 때문에 리팩터링 뒤에도 그대로 쓸 수 있다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>죽은_셀은_살아있는_이웃이_3개면_살아난다</code></td><td>기존</td><td>리팩터링 중에 탄생 조건(이웃 3개)이 빠져도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_4개면_죽는다</code></td><td>기존</td><td>과밀로 죽는 첫 경우(이웃 4개)가 생존으로 바뀌어도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_2개면_산다</code></td><td>기존</td><td>생존 조건의 아래쪽 끝(이웃 2개)을 놓쳐도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_3개면_산다</code></td><td>기존</td><td>이웃 3개를 탄생 조건으로만 다루고 생존에서 빠뜨리는 실수를 놓친다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_1개면_죽는다</code></td><td>기존</td><td>고립으로 죽는 경우(이웃 1개)가 생존으로 바뀌어도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_0개면_죽는다</code></td><td>기존</td><td>이웃이 하나도 없는 칸이 살아남아도 알 수 없다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_2개여도_살아나지_않는다</code></td><td>기존</td><td>생존 조건과 탄생 조건을 섞어 죽은 칸이 이웃 2개에서 태어나는 실수를 놓친다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_5개_이상이면_죽는다</code></td><td>기존</td><td>이웃 5~8개 중 어느 하나라도 생존으로 판정되어도 알 수 없다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_6개여도_살아나지_않는다</code></td><td>기존</td><td>Conway와 HighLife가 갈리는 경우라서, 기본 규칙이 HighLife처럼 바뀌어도 이 테스트가 없으면 모른다.</td></tr>
+</table>
+
+<h3>ResidentTransitionTest (4개)</h3>
+<p><code>Cell</code> 인터페이스의 주석은 <code>transition()</code>이 상태가 바뀌었으면 <code>true</code>를 돌려준다고 적고 있지만 원본 <code>Resident</code>는 반대로 돌려주었다. 직접 입력한 규칙 <code>B0/S</code>에서 모든 칸이 한꺼번에 바뀌면 판 전체의 <code>transition()</code>이 <code>false</code>가 되어 화면이 다시 그려지지 않았고 이것을 고치면서 만든 테스트다. 원본 코드에서는 네 개 모두 실패한다. <code>ResidentTest</code>는 <code>transition()</code> 뒤의 상태만 보고 돌려주는 값은 보지 않아서 이 결함을 잡지 못했다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>죽은_세포가_태어나면_transition은_true를_돌려준다</code></td><td>설계</td><td>칸이 태어났는데 바뀌지 않았다고 알리면, 그 값을 보고 다시 그릴지 정하는 쪽이 틀린다.</td></tr>
+<tr><td><code>살아_있는_세포가_죽으면_transition은_true를_돌려준다</code></td><td>설계</td><td>칸이 죽은 경우에도 바뀌었다고 알리는지 확인하지 않으면 약속의 절반만 시험하게 된다.</td></tr>
+<tr><td><code>살아_있는_세포가_그대로_살아_있으면_transition은_false를_돌려준다</code></td><td>설계</td><td>바뀌지 않은 칸이 <code>true</code>를 돌려주던 원본의 동작으로 되돌아가도 알 수 없다.</td></tr>
+<tr><td><code>죽은_세포가_그대로_죽어_있으면_transition은_false를_돌려준다</code></td><td>설계</td><td>판 대부분을 차지하는 빈 칸이 바뀌었다고 알려도 알 수 없다.</td></tr>
+</table>
+
+<h3>ConwayRuleTest (6개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>살아있는_셀은_이웃이_2개면_산다</code></td><td>확장</td><td><code>Resident</code>에서 옮겨 온 식이 생존 조건 2를 빠뜨려도 판 전체를 돌리기 전에는 드러나지 않는다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_3개면_탄생한다</code></td><td>확장</td><td><code>ConwayRule</code> 단독으로 탄생 조건을 맞게 판정하는지 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_3개면_산다</code></td><td>확장</td><td>이웃 3개가 생존 조건에서 빠져도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_0개나_1개면_죽는다</code></td><td>경계</td><td>생존 범위의 아래쪽 바깥(0, 1)이 생존으로 판정되어도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_4개_이상이면_죽는다</code></td><td>경계</td><td>이웃 4~8개 중 하나라도 생존으로 판정되어도 알 수 없다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_3개가_아니면_탄생하지_않는다</code></td><td>경계</td><td>이웃 0~8개 중 3 말고 다른 수에서 태어나도 알 수 없다.</td></tr>
+</table>
+
+<h3>HighLifeRuleTest (8개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>살아있는_셀은_이웃이_2개나_3개면_산다</code></td><td>확장</td><td>HighLife의 생존 조건이 Conway와 같은 S23인지 확인하지 않으면 생존 쪽이 틀려도 모른다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_0개나_1개면_죽는다</code></td><td>경계</td><td>생존 범위의 아래쪽 바깥이 생존으로 판정되어도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_4개_이상이면_죽는다</code></td><td>경계</td><td>이웃 4~8개 중 하나라도 생존으로 판정되어도 알 수 없다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_3개면_탄생한다</code></td><td>확장</td><td>6을 추가하다가 원래의 탄생 조건 3을 잃어도 알 수 없다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_6개면_탄생한다</code></td><td>확장</td><td>HighLife를 Conway와 구별하는 유일한 조건이 빠져도 알 수 없다.</td></tr>
+<tr><td><code>살아있는_셀은_이웃이_6개여도_죽는다</code></td><td>경계</td><td>6을 탄생 조건뿐 아니라 생존 조건에도 넣는 실수를 놓친다.</td></tr>
+<tr><td><code>죽은_셀은_이웃이_3개나_6개가_아니면_탄생하지_않는다</code></td><td>경계</td><td>3과 6 말고 다른 이웃 수에서 태어나도 알 수 없다.</td></tr>
+<tr><td><code>Conway와_HighLife는_죽은_셀_이웃_6개에서만_결과가_다르다</code></td><td>설계</td><td>두 구현체가 실수로 똑같아지거나 다른 경우에서도 갈라져도, 각자의 테스트만으로는 둘의 관계를 알 수 없다.</td></tr>
+</table>
+
+<h3>BirthSurvivalRuleTest (8개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>B3_S23은_ConwayRule과_판정이_같다</code></td><td>확장</td><td>문자열을 해석한 규칙이 기존 <code>ConwayRule</code>과 18가지 경우 중 하나라도 다르면 알 수 없다.</td></tr>
+<tr><td><code>B36_S23은_HighLifeRule과_판정이_같다</code></td><td>확장</td><td>탄생 숫자가 둘 이상일 때의 해석이 <code>HighLifeRule</code>과 다르면 알 수 없다.</td></tr>
+<tr><td><code>B2_S는_죽은_세포의_이웃이_2개일_때만_태어난다</code></td><td>확장</td><td>이름 있는 규칙과 비교할 수 없는 새 규칙에서도 탄생 조건을 맞게 읽는지 알 수 없다.</td></tr>
+<tr><td><code>B2_S는_살아_있는_세포가_이웃_수와_상관없이_죽는다</code></td><td>경계</td><td>S 뒤가 비어 있을 때 생존하는 경우가 생겨도 알 수 없다.</td></tr>
+<tr><td><code>B와_S가_없는_글자는_거부한다</code></td><td>경계</td><td><code>abc</code>, 빈 문자열, <code>3/23</code> 같은 입력으로 규칙 객체가 만들어져도 알 수 없다.</td></tr>
+<tr><td><code>슬래시나_S가_빠진_표기는_거부한다</code></td><td>경계</td><td><code>B3</code>, <code>B3S23</code>, <code>B3/23</code>처럼 반쯤 맞는 표기가 통과해 엉뚱한 규칙이 되어도 알 수 없다.</td></tr>
+<tr><td><code>이웃_수가_될_수_없는_9는_거부한다</code></td><td>경계</td><td>이웃 수로 나올 수 없는 9가 들어간 표기를 받아들여도 알 수 없다.</td></tr>
+<tr><td><code>입력이_없으면_거부한다</code></td><td>경계</td><td><code>null</code>이 들어왔을 때 <code>IllegalArgumentException</code>이 아닌 다른 예외가 나도 알 수 없다.</td></tr>
+</table>
+
+<h3>RuleHolderTest (3개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>처음에는_Conway_규칙을_보관한다</code></td><td>기존</td><td>규칙을 고르지 않고 시작했을 때 원본처럼 Conway로 돌지 않아도 알 수 없다.</td></tr>
+<tr><td><code>규칙을_바꾸면_바꾼_규칙을_돌려준다</code></td><td>확장</td><td><code>change</code>가 규칙을 실제로 바꾸지 않아도 알 수 없다.</td></tr>
+<tr><td><code>서로_다른_RuleHolder는_서로_영향을_주지_않는다</code></td><td>설계</td><td><code>RuleHolder</code>를 Singleton으로 만들지 않기로 한 결정(ADR 001 결정 2)이 무너져 테스트끼리 규칙을 나눠 갖게 되어도 알 수 없다.</td></tr>
+</table>
+
+<h3>ResidentRuleTest (3개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>HighLife를_보관한_RuleHolder를_받은_Resident는_이웃_6개에서_탄생한다</code></td><td>확장</td><td><code>Resident</code>가 전달받은 <code>RuleHolder</code>를 무시하고 Conway로 판정해도 알 수 없다.</td></tr>
+<tr><td><code>RuleHolder의_규칙을_바꾸면_이미_만들어진_Resident도_새_규칙을_따른다</code></td><td>설계</td><td><code>Resident</code>가 만들어질 때의 규칙을 붙들고 있어 실행 중 교체가 반영되지 않아도 알 수 없다.</td></tr>
+<tr><td><code>create로_복제한_Resident는_같은_RuleHolder를_공유한다</code></td><td>설계</td><td>판의 칸은 프로토타입의 <code>create()</code>로 만들어지는데, 복제본이 새 <code>RuleHolder</code>를 갖게 되면 규칙을 바꿔도 판이 따라오지 않는다.</td></tr>
+</table>
+
+<h3>NeighborhoodRuleTest (10개)</h3>
+<p>실제 프로그램과 같은 구조의 판(<code>Neighborhood</code> 안에 <code>Neighborhood</code>, 그 안에 <code>Resident</code>, 64×64칸)을 만들고 <code>userClicked</code>로 세포를 놓는다. 세대 진행은 <code>Universe.tick()</code>과 같은 방식으로 한다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>가로_3칸_두_줄은_Conway에서_1세대에_4칸이_되고_2세대에_전멸한다</code></td><td>기존</td><td>칸 하나씩은 맞아도 판 전체에서 Conway 진행이 어긋나면 칸 단위 테스트로는 알 수 없다.</td></tr>
+<tr><td><code>가로_3칸_두_줄은_HighLife에서_1세대에_세로_5칸이_되고_2세대에_3x3이_된다</code></td><td>확장</td><td><code>RuleHolder</code>에 넣은 HighLife가 판의 4096칸 모두에 실제로 쓰이지 않아도 알 수 없다.</td></tr>
+<tr><td><code>Conway로_돌던_판의_규칙을_도중에_HighLife로_바꾸면_다음_세대부터_반영된다</code></td><td>확장</td><td>판이 움직이는 도중에 규칙을 바꿨을 때 반영이 늦거나 안 되어도 알 수 없다.</td></tr>
+<tr><td><code>무작위_배치_시드1은_60세대까지_세포_수가_원본과_같다</code></td><td>설계</td><td><code>Neighborhood</code>를 고친 뒤 진행이 원본과 달라져도 알 수 없다. 기대값은 수정 전 원본을 같은 방법으로 돌려 얻었고 세포 수만 비교한다.</td></tr>
+<tr><td><code>무작위_배치_시드2는_60세대까지_세포_수가_원본과_같다</code></td><td>설계</td><td>배치 하나에서만 우연히 맞는 경우를 걸러 내려고 다른 시드로 같은 비교를 한다.</td></tr>
+<tr><td><code>무작위_배치_시드3은_60세대까지_세포_수가_원본과_같다</code></td><td>설계</td><td>세 번째 무작위 배치에서도 20, 40, 60세대의 세포 수가 원본과 같은지 본다.</td></tr>
+<tr><td><code>구역_경계에_걸친_Blinker는_가로와_세로를_번갈아_반복한다</code></td><td>경계</td><td>8칸 구역 네 개에 걸친 모양에서 구역 사이의 이웃 전달이 틀려도 구역 안쪽만 보는 테스트로는 알 수 없다.</td></tr>
+<tr><td><code>조용해진_판에서도_규칙을_바꾸면_다음_세대부터_반영된다</code></td><td>경계</td><td>판 전체가 변하지 않는 상태에서는 계산을 건너뛰어 규칙 교체가 무시되던 결함(ADR 002)이 다시 생겨도 알 수 없다. 수정 전에는 <code>expected: &lt;7&gt; but was: &lt;6&gt;</code>으로 실패했다.</td></tr>
+<tr><td><code>직접_입력한_규칙_B2_S로도_판이_규칙대로_진행한다</code></td><td>확장</td><td>문자열로 만든 규칙도 판 전체에서 기대한 좌표대로 진행하는지 알 수 없다.</td></tr>
+<tr><td><code>모든_칸이_한꺼번에_바뀌는_세대에도_판의_transition은_true를_돌려준다</code></td><td>경계</td><td><code>B0/S</code>처럼 모든 칸이 동시에 바뀌는 세대에 판이 바뀌지 않았다고 알려, <code>tick()</code>이 화면을 다시 그리지 않아도 알 수 없다.</td></tr>
+</table>
+
+<h3>RuleToStringTest (3개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>Conway는_B3_S23</code></td><td>확장</td><td>창 아래 Rule 칸에 <code>Object</code>의 기본 <code>toString()</code> 같은 엉뚱한 글자가 나와도 화면을 띄우기 전에는 모른다.</td></tr>
+<tr><td><code>HighLife는_B36_S23</code></td><td>확장</td><td>HighLife의 표기를 잘못 적어도 알 수 없다.</td></tr>
+<tr><td><code>직접_입력한_규칙은_입력한_표기</code></td><td>확장</td><td>직접 입력한 규칙이 입력한 표기 그대로 보이지 않거나, S 뒤가 빈 <code>B2/S</code>에서 글자가 깨져도 알 수 없다.</td></tr>
+</table>
+
+<h3>GenerationTest (10개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>한_칸만_있으면_다음_세대에_사라진다</code></td><td>확장</td><td>가장 단순한 배치에서 <code>next</code>가 칸을 남겨도 알 수 없다.</td></tr>
+<tr><td><code>Block은_다음_세대에도_그대로다</code></td><td>확장</td><td>변하지 않는 모양의 다음 세대가 <code>equals</code>로 같지 않으면 예측기가 정지를 알아볼 수 없는데, 그것을 놓친다.</td></tr>
+<tr><td><code>Blinker는_한_세대_뒤_세로가_되고_두_세대_뒤_제자리로_온다</code></td><td>확장</td><td>반복하는 모양이 두 세대 뒤 처음 모양과 같은 객체로 돌아오지 않으면 반복을 알아볼 수 없는데, 그것을 놓친다.</td></tr>
+<tr><td><code>같은_배치라도_규칙이_다르면_다음_세대가_다르다</code></td><td>확장</td><td><code>Generation</code>이 받은 <code>Rule</code>을 쓰지 않고 한 규칙으로만 계산해도 알 수 없다.</td></tr>
+<tr><td><code>판_끝에서는_판_밖을_죽은_칸으로_본다</code></td><td>경계</td><td>판 끝에서 칸이 판 밖에 생기거나 반대편과 이어지게 계산해도 알 수 없다.</td></tr>
+<tr><td><code>next는_원래_Generation을_바꾸지_않는다</code></td><td>설계</td><td>예측기는 지나온 세대를 <code>Map</code>에 기억해 두는데, <code>next</code>가 원래 객체를 고치면 그 기록이 망가진다.</td></tr>
+<tr><td><code>넘겨준_좌표를_나중에_고쳐도_Generation은_바뀌지_않는다</code></td><td>설계</td><td><code>java.awt.Point</code>는 고칠 수 있는 객체라서, 생성자가 좌표 객체를 복사하지 않으면 넘겨준 쪽의 수정이 <code>Generation</code>에 스며든다.</td></tr>
+<tr><td><code>liveCells로_꺼낸_좌표를_고쳐도_Generation은_바뀌지_않는다</code></td><td>설계</td><td>꺼내 준 좌표를 받은 쪽이 고쳤을 때 <code>Generation</code> 안의 값까지 바뀌어도 알 수 없다.</td></tr>
+<tr><td><code>살아_있는_칸의_수를_알려_준다</code></td><td>확장</td><td>창 아래 Cells 숫자에 쓰는 <code>liveCount()</code>가 틀려도 알 수 없다.</td></tr>
+<tr><td><code>판_밖의_좌표로는_만들_수_없다</code></td><td>경계</td><td>0~63 밖의 좌표가 든 <code>Generation</code>이 만들어져 계산이 판 크기를 벗어나도 알 수 없다.</td></tr>
+</table>
+
+<h3>GenerationMatchesBoardTest (5개)</h3>
+<p>같은 배치를 실제 <code>Neighborhood</code> 판과 <code>Generation</code>에 놓고 세대마다 살아 있는 칸의 좌표를 전부 비교한다. 세대를 진행하는 코드가 두 벌이 되었기 때문에 만든 테스트다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>무작위_판에서_Conway로_300세대_내내_실제_판과_같다</code></td><td>설계</td><td>예측에 쓰는 계산이 화면의 판과 어느 세대에서 갈라져도, 각자의 테스트만으로는 알 수 없다.</td></tr>
+<tr><td><code>무작위_판에서_HighLife로_300세대_내내_실제_판과_같다</code></td><td>설계</td><td>Conway에서만 두 계산이 맞고 다른 규칙에서는 어긋나는 경우를 놓친다.</td></tr>
+<tr><td><code>직접_입력한_규칙으로도_실제_판과_같다</code></td><td>설계</td><td>문자열로 만든 규칙(<code>B2/S</code>)에서 두 계산이 어긋나도 알 수 없다.</td></tr>
+<tr><td><code>이웃이_0개여도_태어나는_규칙에서도_실제_판과_같다</code></td><td>경계</td><td>살아 있는 칸 주변만 계산하도록 고치면 <code>B0</code> 규칙에서 틀리는데, 그런 수정이 들어와도 알 수 없다.</td></tr>
+<tr><td><code>Glider가_판_끝에_부딪혀_멈출_때까지_실제_판과_같다</code></td><td>경계</td><td>판 끝 처리가 실제 판과 다르면 Glider의 결말이 달라지는데, 움직이는 모양이 벽에 닿는 경우를 시험하지 않으면 그것을 놓친다.</td></tr>
+</table>
+
+<h3>EndingPredictorTest (12개)</h3>
+<p>예측기는 한도 500세대로 만들어 쓴다. 손으로 따지기 어려운 기대값(가로 5칸, HighLife, Glider)은 같은 배치를 실제 판에서 돌려 얻었다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>빈_판은_이미_소멸이다</code></td><td>경계</td><td>시작부터 빈 판을 0세대 뒤 소멸이 아닌 다른 답으로 내도 알 수 없다.</td></tr>
+<tr><td><code>한_칸은_1세대_뒤_소멸한다</code></td><td>확장</td><td>소멸까지 남은 세대 수를 하나 어긋나게 세도 알 수 없다.</td></tr>
+<tr><td><code>빈_판에서도_태어나는_규칙이면_빈_판은_소멸이_아니다</code></td><td>경계</td><td><code>B0</code> 규칙에서 빈 판 다음에 모든 칸이 태어나는데도 빈 판이면 무조건 소멸로 답하던 결함이 다시 생겨도 알 수 없다.</td></tr>
+<tr><td><code>Block은_처음부터_정지다</code></td><td>확장</td><td>처음부터 변하지 않는 모양을 정지로, 0세대 뒤로 답하지 않아도 알 수 없다.</td></tr>
+<tr><td><code>ㄱ자_3칸은_1세대_뒤_Block이_되어_정지한다</code></td><td>확장</td><td>몇 세대 뒤에 정지하는지를 처음 같은 모양이 나온 세대 기준으로 세지 않아도 알 수 없다.</td></tr>
+<tr><td><code>Glider는_247세대_뒤_판_끝에서_정지한다</code></td><td>확장</td><td>수백 세대를 미리 돌려야 나오는 결말을 실제 판과 같은 세대 수로 맞히는지 알 수 없다.</td></tr>
+<tr><td><code>Blinker는_처음부터_주기_2로_반복한다</code></td><td>확장</td><td>주기 2인 모양을 정지나 미확정으로 답해도 알 수 없다.</td></tr>
+<tr><td><code>가로_5칸은_6세대_뒤부터_주기_2로_반복한다</code></td><td>확장</td><td>반복에 들어가기 전의 세대 수와 반복의 주기를 섞어 세도 알 수 없다.</td></tr>
+<tr><td><code>같은_배치라도_규칙에_따라_결말이_다르다</code></td><td>확장</td><td>예측기가 받은 규칙을 쓰지 않고 한 규칙으로만 미리 돌려도 알 수 없다.</td></tr>
+<tr><td><code>한도_안에_결말이_없으면_미확정이다</code></td><td>경계</td><td>한도를 넘어서도 계속 돌거나 한도 안에서 결말을 지어내도 알 수 없다.</td></tr>
+<tr><td><code>소멸은_한도_세대에_판이_비어도_알_수_있다</code></td><td>경계</td><td>한도 세대에 판이 비었을 때 소멸 확인용 계산을 한도에 넣어 미확정으로 답하게 바뀌어도 알 수 없다.</td></tr>
+<tr><td><code>정지는_그다음_세대까지_돌려_봐야_알_수_있다</code></td><td>경계</td><td>정지를 판단하려면 한 세대를 더 봐야 한다는 한도 계산(247은 미확정, 248은 정지)이 하나 어긋나도 알 수 없다.</td></tr>
+</table>
+
+<h3>EndingMatchesBoardTest (3개)</h3>
+<p>규칙 12개(<code>B0/S</code>, <code>B/S</code>, <code>B012345678/S012345678</code> 등 직접 입력할 수 있는 특이한 규칙과 Conway, HighLife)마다 한도 60으로 예측한 뒤, 같은 배치를 실제 판에서 돌려 그 세대의 판이 정말 예측대로인지 본다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>빈_판에서_예측한_결말이_실제_판과_맞는다</code></td><td>경계</td><td>빈 판에서 시작할 때 규칙에 따라 소멸, 반복 등으로 갈리는 답이 실제 판과 다르면 알 수 없다.</td></tr>
+<tr><td><code>가로_3칸에서_예측한_결말이_실제_판과_맞는다</code></td><td>경계</td><td>작은 배치에서 특이한 규칙으로 한 예측이 실제 판과 다르면 알 수 없다.</td></tr>
+<tr><td><code>무작위_판에서_예측한_결말이_실제_판과_맞는다</code></td><td>경계</td><td>칸이 많은 판에서 특이한 규칙으로 한 예측이 실제 판과 다르거나, 미확정이라 답했는데 한도 안에서 같은 모양이 다시 나와도 알 수 없다.</td></tr>
+</table>
+
+<h3>LiveCellCollectorTest (2개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>클릭한_칸들의_좌표를_모은다</code></td><td>확장</td><td>화면의 판을 <code>Generation</code>으로 옮기는 통로가 모서리 칸이나 구역 경계를 넘는 칸의 좌표를 잘못 옮기면, 예측이 다른 판을 기준으로 하게 되는데 그것을 놓친다.</td></tr>
+<tr><td><code>빈_판이면_아무것도_모으지_않는다</code></td><td>경계</td><td>빈 판에서 좌표가 하나라도 모이면 빈 판의 예측이 틀어지는데, 그것을 알 수 없다.</td></tr>
+</table>
+
+<h3>PredictionWorkerTest (4개)</h3>
+<p>진짜 예측기 대신 테스트가 정한 때에 끝나는 가짜 계산을 넣는다. 시간을 재지 않고 <code>CountDownLatch</code>로 계산이 시작되고 끝나는 순서를 테스트가 정한다.</p>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>계산하는_동안_들어온_요청은_최신_것만_계산한다</code></td><td>설계</td><td>클릭이 빠르게 이어질 때 지나간 요청까지 모두 계산해 최신 예측이 늦어져도 알 수 없다.</td></tr>
+<tr><td><code>결과는_그_요청과_함께_전한다</code></td><td>설계</td><td>결과가 어느 요청의 것인지 함께 오지 않으면 받는 쪽이 변경 번호로 옛 예측을 가려낼 수 없는데, 그것을 놓친다.</td></tr>
+<tr><td><code>쉬고_있다가_새_요청이_오면_다시_계산한다</code></td><td>설계</td><td>작업자가 요청을 한 번 처리한 뒤 일하는 중이라는 표시를 풀지 않아 다음 요청을 받지 않아도 알 수 없다.</td></tr>
+<tr><td><code>계산이_실패해도_다음_요청은_계산한다</code></td><td>경계</td><td>계산 중 예외 하나로 작업자 스레드가 멈춰 그 뒤로 예측이 영영 갱신되지 않아도 알 수 없다. A의 계산이 시작된 것을 확인한 뒤 B를 보내도록 고쳐, 실패하는 경로를 반드시 거치게 했다.</td></tr>
+</table>
+
+<h3>StatusLineTest (18개)</h3>
+<table>
+<tr><th>테스트 메서드</th><th>분류</th><th>만든 목적</th></tr>
+<tr><td><code>윗줄은_세대_세포_규칙_아랫줄은_예측한_결말</code></td><td>확장</td><td>창 아래 두 줄의 글자 모양이 바뀌거나 값이 엉뚱한 칸에 들어가도 화면을 보기 전에는 모른다.</td></tr>
+<tr><td><code>결과가_오기_전에는_계산_중이다</code></td><td>확장</td><td>예측 결과가 아직 없을 때 빈 글자나 옛 결말이 보여도 알 수 없다.</td></tr>
+<tr><td><code>변경_번호가_다른_결과는_버린다</code></td><td>설계</td><td>클릭 전의 판으로 계산한 예측이 늦게 도착해 지금 판의 결말처럼 보여도 알 수 없다.</td></tr>
+<tr><td><code>새로_바뀌면_옛_결말_대신_계산_중으로_보인다</code></td><td>설계</td><td>판이 바뀐 뒤 새 결과가 올 때까지 옛 결말이 그대로 남아 있어도 알 수 없다.</td></tr>
+<tr><td><code>세대만_진행했으면_남은_세대를_줄인다</code></td><td>확장</td><td>결과가 도착하기 전에 진행한 세대를 빼지 않아 남은 세대 수가 실제보다 많게 보여도 알 수 없다.</td></tr>
+<tr><td><code>결과를_받은_뒤에_세대가_진행해도_남은_세대를_줄인다</code></td><td>확장</td><td>예측을 받은 뒤 세대가 넘어갈 때 숫자가 줄지 않거나, 1일 때 단수형 <code>generation</code>으로 바뀌지 않아도 알 수 없다.</td></tr>
+<tr><td><code>그_세대를_지났으면_도달한_상태로_보인다</code></td><td>경계</td><td>예측한 세대를 지나면 남은 세대 수가 음수로 찍혀도 알 수 없다.</td></tr>
+<tr><td><code>정지와_반복의_글자</code></td><td>확장</td><td>정지와 반복의 글자, 그리고 반복에 이르기 전(<code>repeats</code>)과 이른 뒤(<code>repeating</code>)의 구분이 틀려도 알 수 없다.</td></tr>
+<tr><td><code>미확정은_한도를_보여_주고_세대가_지나도_줄이지_않는다</code></td><td>경계</td><td>미확정의 숫자는 남은 세대가 아니라 한도인데, 세대가 지날 때 이것을 줄여 버려도 알 수 없다.</td></tr>
+<tr><td><code>늦게_도착한_옛_세대_정보는_무시한다</code></td><td>설계</td><td>시계 스레드가 클릭 전에 읽은 판 정보가 클릭보다 늦게 반영되어 화면이 옛 세포 수로 되돌아가도 알 수 없다.</td></tr>
+<tr><td><code>결말의_종류마다_글자색이_다르다</code></td><td>확장</td><td>결말 종류와 글자색의 짝이 뒤바뀌어도 알 수 없다.</td></tr>
+<tr><td><code>계산_중일_때의_글자색은_미확정과_같다</code></td><td>경계</td><td>결과가 없을 때 직전 결말의 색이 남거나 예외가 나도 알 수 없다.</td></tr>
+<tr><td><code>네_가지_색은_서로_다르다</code></td><td>설계</td><td>색 값을 고치다가 두 결말이 같은 색이 되어도 알 수 없다.</td></tr>
+<tr><td><code>소멸에_도달하면_끝난_것이다</code></td><td>확장</td><td>자동 정지가 소멸에 이르기 전에 멈추거나, 이른 뒤에도 멈추지 않아도 알 수 없다.</td></tr>
+<tr><td><code>정지에_도달하면_끝난_것이다</code></td><td>확장</td><td>처음부터 멈춘 모양에서 시계가 멈추지 않아도 알 수 없다.</td></tr>
+<tr><td><code>반복은_도달해도_끝난_것이_아니다</code></td><td>경계</td><td>판이 계속 움직이는 반복에서 시계를 멈춰 버려도 알 수 없다.</td></tr>
+<tr><td><code>미확정과_계산_중은_끝난_것이_아니다</code></td><td>경계</td><td>결말을 모르는 상태에서, 또는 미확정 한도보다 많은 세대가 지났다고 시계를 멈춰도 알 수 없다.</td></tr>
+<tr><td><code>끝난_뒤에_판이나_규칙이_바뀌면_다시_끝난_것이_아니다</code></td><td>경계</td><td>자동 정지 뒤 칸을 클릭해도 끝난 상태가 남아 있으면 다시 돌릴 수 없는데, 그것을 놓친다.</td></tr>
+</table>
+
+<h2>6-3. 대표 테스트 코드</h2>
+
+<h3>(1) 기존 동작: ResidentTest</h3>
+<p>원본 <code>Resident</code>의 판정을 리팩터링 전에 고정해 둔 테스트다. 이 메서드는 규칙을 <code>Rule</code>로 떼어 낸 뒤에도 한 글자도 고치지 않고 통과했다.</p>
+<pre><code>@Test                                                // "이 메서드는 테스트다" 표시
+void 죽은_셀은_살아있는_이웃이_3개면_살아난다() {
+
+    // ── 준비: 등장인물 만들기 ──────────────────────────
+    Resident target = new Resident();                // 검사할 칸. 처음엔 죽어 있음
+
+    Resident alive1 = new Resident();                // 이웃 3개를 만들고
+    Resident alive2 = new Resident();
+    Resident alive3 = new Resident();
+    alive1.userClicked(null, null);                  // 클릭하면 죽음↔삶이 뒤집힘 → 셋 다 살아남
+    alive2.userClicked(null, null);
+    alive3.userClicked(null, null);
+
+    Cell dead = Cell.DUMMY;                          // 영원히 죽어있는 칸. 나머지 5방향용
+
+    // ── 실행: 다음 세대로 ──────────────────────────────
+    target.figureNextState(                          // "주위 8칸이 이렇다. 다음 상태를 계산해"
+            alive1,  // north
+            alive2,  // south
+            alive3,  // east
+            dead,    // west
+            // ... (northeast, northwest, southeast, southwest도 dead)
+            dead );  // southwest
+    target.transition();                             // "계산한 상태로 실제로 바뀌어"
+
+    // ── 확인 ──────────────────────────────────────────
+    assertTrue(target.isAlive());                    // 살아났어야 한다. 아니면 FAILED
+}</code></pre>
+
+<h3>(2) 결함 재현: NeighborhoodRuleTest</h3>
+<p>ADR 002의 근거가 된 테스트다. 판 전체가 변하지 않는 상태에서 규칙을 바꾸면, 원본의 건너뛰기 조건 때문에 새 규칙이 반영되지 않았다. 수정 전에는 첫 확인에서 7 대신 6이 나와 실패했고, <code>Neighborhood</code>의 건너뛰기 조건을 지운 뒤 통과했다.</p>
+<pre><code>@Test
+void 조용해진_판에서도_규칙을_바꾸면_다음_세대부터_반영된다() {
+    // ── 준비: 위 테스트와 같지만 Blinker가 없다. Ship만 있으면 판 전체가 변하지 않는다 ──
+    RuleHolder holder = new RuleHolder();            // 기본값은 Conway
+    Cell board = newBoard(holder);
+
+    click(board, 10, 10);  click(board, 11, 10);
+    click(board, 10, 11);                         click(board, 12, 11);
+                           click(board, 11, 12);  click(board, 12, 12);
+
+    // ── Conway로 3세대: Ship은 그대로. 판에 변하는 세포가 하나도 없다 ──
+    step(board, 3);
+    assertEquals(6, liveCells(board).size());
+
+    // ── 여기서 규칙을 바꾼다 ──
+    holder.change(new HighLifeRule());
+
+    // ── 바꾼 뒤: 올바르게 동작한다면 위 테스트처럼 7칸 → 4칸 → 0칸 ──
+    step(board, 1);
+    assertEquals(7, liveCells(board).size());
+
+    step(board, 1);
+    assertEquals(4, liveCells(board).size());
+
+    step(board, 1);
+    assertEquals(0, liveCells(board).size());
+}</code></pre>
+
+<h3>(3) 예측 모델과 실제 판의 비교: GenerationMatchesBoardTest</h3>
+<p>예측에 쓰는 <code>Generation</code>은 화면의 판과 다른 코드로 세대를 진행한다. 이 테스트는 판 끝에 부딪히는 Glider를 양쪽에서 260세대 돌리며 매 세대 좌표를 비교하고 마지막 모양이 더는 변하지 않는지도 본다. 비교를 맡는 도우미 메서드를 함께 실었다.</p>
+<pre><code>@Test
+void Glider가_판_끝에_부딪혀_멈출_때까지_실제_판과_같다() {
+    // 왼쪽 위에서 오른쪽 아래로 가는 Glider. 판 끝에 닿으면 4칸으로 멈춘다.
+    Set&lt;Point&gt; glider = Set.of(new Point(1, 0), new Point(2, 1),
+                               new Point(0, 2), new Point(1, 2), new Point(2, 2));
+
+    Generation last = assertSameAsBoard(glider, new ConwayRule(), 260);
+
+    assertEquals(4, last.liveCells().size());
+    assertEquals(last, last.next(new ConwayRule()));      // 더는 변하지 않는다
+}
+
+private Generation assertSameAsBoard(Set&lt;Point&gt; start, Rule rule, int generations) {
+    RuleHolder holder = new RuleHolder();
+    holder.change(rule);
+    Cell board = newBoard(holder);
+    for (Point cell : start) {
+        click(board, cell.x, cell.y);
+    }
+    Generation generation = new Generation(start, WIDTH);
+
+    for (int n = 0; n &lt; generations; n++) {
+        assertEquals(liveCells(board), generation.liveCells(), n + "세대에서 달라졌다");
+        step(board);
+        generation = generation.next(rule);
+    }
+    assertEquals(liveCells(board), generation.liveCells(), generations + "세대에서 달라졌다");
+    return generation;
+}</code></pre>
+
+<h3>(4) 화면 없이 시험한 표시 논리: StatusLineTest</h3>
+<p>세대 진행은 시계 스레드, 클릭은 Swing 스레드에서 일어나기 때문에 클릭 전에 읽은 정보가 늦게 도착할 수 있다. 이 상황을 창이나 스레드 없이 <code>update</code> 호출 순서만으로 재현했다.</p>
+<pre><code>@Test
+void 늦게_도착한_옛_세대_정보는_무시한다() {
+    // 세대 진행(시계 스레드)이 읽은 정보가 클릭(Swing 스레드)보다 늦게 화면에 반영되는 경우
+    StatusLine line = new StatusLine();
+    line.update(5, 4, "B3/S23", 2);                                     // 클릭: 변경 번호 2
+    line.update(5, 3, "B3/S23", 1);                                     // 클릭 전에 읽은 정보가 늦게 왔다
+    line.accept(request(5, 2), new Ending(Ending.Kind.STILL, 0, 1));
+
+    assertEquals("Generation 5 | Cells 4 | Rule B3/S23", line.stateText());
+    assertEquals("Ending: still", line.endingText());
+}</code></pre>
+
+<h2>6-4. 모델을 UI와 분리해 테스트한 것</h2>
+<p>113개 테스트 중 <code>Universe</code>, <code>Clock</code>, Swing 컴포넌트를 쓰는 것은 하나도 없다. <code>Universe</code>는 창과 메뉴를 만들어야 생기기 때문에, 판이 필요한 테스트는 <code>Universe</code>와 같은 구조의 <code>Neighborhood</code> 판을 직접 만들고 <code>userClicked</code>와 <code>figureNextState</code>, <code>transition</code>을 불러 클릭과 세대 진행을 흉내 낸다.</p>
+<p><code>Generation</code>과 <code>EndingPredictor</code>는 살아 있는 칸의 좌표 집합과 <code>Rule</code>만 받으므로 판도 화면도 없이 시험했다. <code>PredictionWorker</code>는 생성자로 계산 함수와 결과를 받을 함수를 받기 때문에, 테스트에서는 진짜 예측기 대신 <code>CountDownLatch</code>로 끝나는 시점을 정한 가짜 계산을 넣었다. <code>StatusLine</code>은 Swing을 쓰지 않고 글자와 색(<code>java.awt.Color</code>)만 만들며 그것을 실제 화면에 올리는 일은 <code>Universe</code>가 한다. 그래서 옛 예측을 버리는 규칙, 남은 세대 계산, 자동 정지 판단(<code>isFinished()</code>)을 창 없이 확인할 수 있었다.</p>
+<p>반대로 <code>Universe</code>에 남은 연결 코드, 곧 잠금, 메뉴 처리, <code>isFinished()</code>를 보고 <code>Clock</code>을 멈추는 부분은 JUnit으로 확인하지 않았다.</p>
+<p>이 연결 부분은 두 가지로 대신 확인했다. 첫째, 창을 화면에 띄우지 않고 같은 프로그램을 돌려 클릭·세대 진행·메뉴를 코드로 흉내 내고 창 아래 글자를 읽었다(<code>docs/experiments/StatusCheck.java</code>, <code>AutoStop.java</code>). 둘째, 실제 창에서 남은 세대 수가 줄어드는 것, 자동 정지, <code>B0/S</code>에서 판 전체가 깜빡이는 것을 눈으로 확인했고 코드 동결일에는 같은 이벤트를 코드로 보내 단계마다 창 그림을 떠서 확인했다(5-5절). 파일 선택 창이 뜨는 Load와 Store는 이렇게 확인하기 어려워 시연 영상으로 보인다.</p>
+</section>
