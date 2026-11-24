@@ -39,6 +39,7 @@ java -cp build/classes/java/main:/tmp/life-exp Exp
 | `Flicker` | 창을 띄우지 않고 클릭 5번을 흉내 내, 창의 배치가 무효가 된 횟수와 판의 크기가 바뀐 횟수를 센다. `java -Dapple.awt.UIElement=true`로 실행한다. 인자를 하나 주면 상태 표시를 창에 붙이지 않는다 | 확장 2 문서 4-1절 |
 | `Fit` | 가장 긴 글자를 넣었을 때 상태 표시 두 줄이 창 너비 안에 들어가는지 잰다. `java -Dapple.awt.UIElement=true`로 실행한다 | 확장 2 문서 4-1절 |
 | `WallCheck` | Glider와 LWSS 하나를 8방향, 여러 위치에 놓고 판 끝에 닿은 뒤의 결말을 센다 (11/18) | 확장 2 문서 4-1절, 6절 |
+| `skip-check/run.sh` | 원본의 건너뛰기 조건을 되살린 사본 두 개(원본 `transition()` / 고친 `transition()`)에서 세대마다 계산한 칸 수를 센다. `bash docs/experiments/skip-check/run.sh`로 실행한다 (11/24) | ADR 002 6절 |
 | `LateEnding` | 한도 500세대 안에서는 미확정인데 그 뒤에 정지나 소멸로 끝나는 판이 있는지 찾는다. 1분쯤 걸린다 (11/18) | 확장 2 문서 4-1절 (자동 정지) |
 | `AutoStop` | 창을 띄우지 않고 실제 시계(30ms)를 돌려, 소멸이나 정지에 도달하면 시계가 멈추는지 본다. `java -Dapple.awt.UIElement=true`로 실행한다. 20초쯤 걸린다(코드에 적힌 대기 시간만 14초. 11/18에 21초) | 확장 2 문서 4-1절 |
 | `MoveDemo` | 미리 돌리면서 전에 본 모양이 자리만 옮겨 다시 나오는지(이동) 찾아본다. 이동 예측을 넣을지 따져 보려고 쓴 것이고 기능으로 넣지는 않았다 | 확장 2 문서 6절 |
