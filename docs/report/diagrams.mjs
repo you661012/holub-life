@@ -4,7 +4,7 @@ import fs from "fs";
 import { Diagram, classBox, relation, note, lifelines, activation, message, stateBox, transition, initial, BLUE } from "./uml.mjs";
 const OUT = process.argv[2] || ".";
 const save = (name, d) => fs.writeFileSync(`${OUT}/${name}.svg`, d.svg());
-const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#777" stroke-dasharray="2 3"/>`); d.text(x + 6, y + h - 6, label, { size: 11.5, color: "#555" }); };
+const region = (d, x, y, w, h, label, right = false) => { d.add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#777" stroke-dasharray="2 3"/>`); d.text(right ? x + w - 6 : x + 6, y + h - 6, label, { size: 11.5, color: "#555", anchor: right ? "end" : "start" }); };
 
 // ── 그림 2-1. 원본 Life Game의 주요 클래스 ─────────────────────
 {
@@ -14,7 +14,7 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   const clock = classBox(d, { x: 720, y: 20, w: 240, name: "Clock", fields: ["_-instance : Clock"], methods: ["_+instance() : Clock", "+addClockListener(Listener)", "+startTicking(int)", "+stop()", "+tick()"] });
   const pub = classBox(d, { x: 740, y: 220, w: 200, name: "Publisher", fields: [], methods: ["+subscribe(Object)", "+publish(Distributor)"] });
   const lis = classBox(d, { x: 760, y: 360, w: 180, name: "Clock.Listener", stereo: "interface", fields: null, methods: ["+tick()"] });
-  const anon = classBox(d, { x: 560, y: 360, w: 140, name: "Universe$1", fields: null, methods: ["+tick()"] });
+  const anon = classBox(d, { x: 560, y: 360, w: 140, name: "Universe$7", fields: null, methods: ["+tick()"] });
   const cell = classBox(d, { x: 220, y: 250, w: 300, name: "Cell", stereo: "interface", fields: null,
     methods: ["+figureNextState(Cell × 8) : boolean", "+transition() : boolean", "+userClicked(Point, Rectangle)", "+isAlive() : boolean", "+widthInCells() : int", "+create() : Cell", "+clear()", "+transfer(Storable, Point, boolean) : boolean"] });
   const nb = classBox(d, { x: 100, y: 530, w: 280, name: "Neighborhood", fields: ["-gridSize : int"], methods: ["+figureNextState(Cell × 8) : boolean", "+create() : Cell"] });
@@ -30,7 +30,8 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   relation(d, [clock.right(20), [978, clock.cy + 20], [978, lis.cy], lis.right()], "depend", { label: "tick() 전달", labelAt: [935, 340] });
   relation(d, [uni.right(14), [540, uni.cy + 14], [540, 330], [anon.cx, 330], anon.top()], "depend", { label: "«create»", labelAt: [590, 322] });
   relation(d, [anon.right(), lis.left()], "realize");
-  note(d, 520, 450, ["Universe 생성자 안의 익명 클래스.", "addClockListener()로 구독하고,", "울릴 때마다 한 세대를 진행한다"], { to: [anon.cx, anon.y + anon.h], from: [anon.cx, 450] });
+  // 메모는 Resident의 실현선(x≈600)과 겹치지 않게 오른쪽 아래에 둔다
+  note(d, 735, 470, ["Universe 생성자 안의 익명 클래스.", "이름은 컴파일러가 붙인 번호다.", "addClockListener()로 구독하고,", "울릴 때마다 한 세대를 진행한다"], { to: [anon.x + anon.w - 20, anon.y + anon.h], from: [760, 470] });
   save("fig2-1-original", d);
 }
 
@@ -45,7 +46,7 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   const uni = classBox(d, { x: 325, y: 50, w: 200, name: "Universe", fields: [], methods: ["+Universe()"] });
   const res = classBox(d, { x: 325, y: 250, w: 250, name: "Resident", role: "Context", fields: ["-amAlive : boolean", "-willBeAlive : boolean"], methods: ["+Resident(RuleHolder)", "+figureNextState(Cell × 8) : boolean", "+create() : Cell"] });
   const hold = classBox(d, { x: 640, y: 50, w: 220, name: "RuleHolder", isNew: true, fields: [], methods: ["+current() : Rule", "+change(Rule)"] });
-  const rule = classBox(d, { x: 655, y: 250, w: 290, name: "Rule", stereo: "interface", isNew: true, role: "Strategy", fields: null, methods: ["+nextState(alive : boolean, neighbors : int) : boolean"] });
+  const rule = classBox(d, { x: 640, y: 250, w: 330, name: "Rule", stereo: "interface", isNew: true, role: "Strategy", fields: null, methods: ["+nextState(alive : boolean, neighbors : int) : boolean"] });
   const cw = classBox(d, { x: 340, y: 450, w: 170, name: "ConwayRule", isNew: true, fields: null, methods: ["+nextState(…) : boolean"] });
   const hl = classBox(d, { x: 560, y: 450, w: 170, name: "HighLifeRule", isNew: true, fields: null, methods: ["+nextState(…) : boolean"] });
   const bs = classBox(d, { x: 780, y: 450, w: 190, name: "BirthSurvivalRule", isNew: true, fields: ["-birth : String", "-survival : String"], methods: ["+BirthSurvivalRule(String)", "+nextState(…) : boolean"] });
@@ -65,31 +66,31 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
 
 // ── 그림 4-2. 규칙을 바꾼 뒤 한 세대 (지금 코드 기준) ──────────
 {
-  const d = new Diagram(990, 600);
+  const d = new Diagram(990, 640);
   const L = lifelines(d, [
     { id: "user", name: "사용자", x: 40, actor: true }, { id: "clock", name: "aClock", x: 140 }, { id: "uni", name: "aUniverse", x: 270 },
     { id: "out", name: "outermostCell", x: 400 }, { id: "inn", name: "innerBlock", x: 520 }, { id: "res", name: "aResident", x: 640 },
-    { id: "hold", name: "aRuleHolder", x: 770 }, { id: "rule", name: "aHighLifeRule", x: 905, isNew: true }], 20, 590);
+    { id: "hold", name: "aRuleHolder", x: 770 }, { id: "rule", name: "aHighLifeRule", x: 905, isNew: true }], 20, 630);
   activation(d, L.uni, 75, 160); message(d, L.user, L.uni - 6, 80, "Rule > HighLife 선택");
   activation(d, L.uni, 100, 150, 6); message(d, L.uni + 6, 0, 98, "changeRule(new HighLifeRule())", { self: true });
   activation(d, L.hold, 125, 140); message(d, L.uni + 12, L.hold - 6, 130, "change(rule)");
   d.text(L.uni + 40, 185, "─ ─ 다음 시계 울림 ─ ─", { size: 12, color: "#555" });
-  activation(d, L.clock, 200, 570); message(d, 4, L.clock - 6, 205, "tick()", { anchor: "start", labelX: 60 });
-  activation(d, L.uni, 220, 565); message(d, L.clock + 6, L.uni - 6, 225, "tick()  (Listener)");
-  activation(d, L.out, 245, 395); message(d, L.uni + 6, L.out - 6, 250, "figureNextState(DUMMY × 8)");
-  activation(d, L.inn, 265, 385); message(d, L.out + 6, L.inn - 6, 270, "figureNextState(…)");
-  activation(d, L.res, 285, 372); message(d, L.inn + 6, L.res - 6, 290, "figureNextState(이웃 8칸)");
-  d.text(L.res + 12, 307, "이웃 수를 센다", { size: 11.5, color: "#555" });
-  activation(d, L.hold, 315, 330); message(d, L.res + 6, L.hold - 6, 320, "current()"); message(d, L.hold - 6, L.res + 6, 338, "rule", { ret: true });
-  activation(d, L.rule, 345, 360); message(d, L.res + 6, L.rule - 6, 350, "nextState(amAlive, neighbors)"); message(d, L.rule - 6, L.res + 6, 368, "boolean", { ret: true });
-  message(d, L.res - 6, L.inn + 6, 380, "boolean", { ret: true });
-  message(d, L.inn - 6, L.out + 6, 392, "boolean", { ret: true });
-  message(d, L.out - 6, L.uni + 6, 405, "true (바뀔 칸이 있다)", { ret: true });
-  activation(d, L.out, 430, 520); message(d, L.uni + 6, L.out - 6, 435, "transition()");
-  activation(d, L.inn, 450, 510); message(d, L.out + 6, L.inn - 6, 455, "transition()");
-  activation(d, L.res, 470, 495); message(d, L.inn + 6, L.res - 6, 475, "transition()");
-  d.text(L.res + 12, 492, "amAlive = willBeAlive", { size: 11.5, color: "#555" });
-  note(d, 700, 505, ["4,096개의 Resident가 같은 RuleHolder를 본다.", "규칙을 바꿔도 Resident 코드는 그대로다"]);
+  activation(d, L.clock, 200, 610); message(d, 4, L.clock - 6, 205, "tick()", { anchor: "start", labelX: 60 });
+  activation(d, L.uni, 220, 605); message(d, L.clock + 6, L.uni - 6, 225, "tick()  (Listener)");
+  activation(d, L.out, 245, 437); message(d, L.uni + 6, L.out - 6, 250, "figureNextState(DUMMY × 8)");
+  activation(d, L.inn, 265, 424); message(d, L.out + 6, L.inn - 6, 270, "figureNextState(…)");
+  activation(d, L.res, 285, 410); message(d, L.inn + 6, L.res - 6, 290, "figureNextState(이웃 8칸)");
+  d.text(L.res + 12, 310, "이웃 수를 센다", { size: 11.5, color: "#555" });
+  activation(d, L.hold, 328, 343); message(d, L.res + 6, L.hold - 6, 333, "current()"); message(d, L.hold - 6, L.res + 6, 352, "rule", { ret: true });
+  activation(d, L.rule, 372, 387); message(d, L.res + 6, L.rule - 6, 377, "nextState(amAlive, neighbors)"); message(d, L.rule - 6, L.res + 6, 396, "boolean", { ret: true });
+  message(d, L.res - 6, L.inn + 6, 410, "boolean", { ret: true });
+  message(d, L.inn - 6, L.out + 6, 424, "boolean", { ret: true });
+  message(d, L.out - 6, L.uni + 6, 437, "true (바뀔 칸이 있다)", { ret: true });
+  activation(d, L.out, 465, 555); message(d, L.uni + 6, L.out - 6, 470, "transition()");
+  activation(d, L.inn, 485, 545); message(d, L.out + 6, L.inn - 6, 490, "transition()");
+  activation(d, L.res, 505, 530); message(d, L.inn + 6, L.res - 6, 510, "transition()");
+  d.text(L.res + 12, 527, "amAlive = willBeAlive", { size: 11.5, color: "#555" });
+  note(d, 665, 560, ["4,096개의 Resident가 같은 RuleHolder를 본다.", "규칙을 바꿔도 Resident 코드는 그대로다"]);
   save("fig4-2-rule-seq", d);
 }
 
@@ -143,8 +144,9 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   activation(d, L.st, 275, 292); message(d, L.uni + 12, L.st - 6, 280, "update(세대, 칸 수, 규칙, 변경 번호)");
   d.text(L.st + 10, 305, "→ calculating...", { size: 11.5, color: "#555" });
   activation(d, L.wk, 312, 328); message(d, L.uni + 12, L.wk - 6, 317, "request(request)"); message(d, L.wk - 6, L.uni + 12, 336, "바로 돌아온다", { ret: true });
-  region(d, 560, 380, 400, 100, "prediction 스레드");
+  region(d, 560, 380, 400, 100, "prediction 스레드", true);
   activation(d, L.wk, 395, 470); activation(d, L.pr, 405, 440); message(d, L.wk + 6, L.pr - 6, 410, "predict(start, rule)"); message(d, L.pr - 6, L.wk + 6, 452, "ending", { ret: true });
+  d.text(L.wk + 14, 430, "Universe가 넘겨준 함수로 부른다", { size: 11.5, color: "#555" });
   d.text(L.pr + 12, 428, "최대 500세대", { size: 11.5, color: "#555" });
   message(d, L.wk - 6, L.uni + 6, 465, "invokeLater(결과 반영)", { async: true });
   region(d, 110, 478, 440, 90, "Swing 스레드");
@@ -163,7 +165,7 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   activation(d, L.uni, 90, 222); message(d, L.clock + 6, L.uni - 6, 95, "tick()  (Listener)");
   region(d, 240, 108, 320, 92, "boardLock 안");
   activation(d, L.nb, 120, 136); message(d, L.uni + 6, L.nb - 6, 125, "figureNextState(DUMMY × 8)");
-  activation(d, L.nb, 146, 162); message(d, L.uni + 6, L.nb - 6, 151, "transition()");
+  activation(d, L.nb, 146, 162); message(d, L.uni + 6, L.nb - 6, 151, "[바뀔 칸이 있으면] transition()");
   message(d, L.uni + 6, 0, 168, "++generationNumber; readBoard()", { self: true });
   message(d, L.uni + 6, 0, 205, "invokeLater(상태 반영)  // 기다리지 않는다", { self: true, async: true });
   region(d, 20, 255, 960, 160, "Swing 스레드 (나중에)");
@@ -190,8 +192,8 @@ const region = (d, x, y, w, h, label) => { d.add(`<rect x="${x}" y="${y}" width=
   d.add(`<polyline points="${calc.cx + 40},${calc.y} ${calc.cx + 40},80 ${reach.cx},80 ${reach.cx},${reach.y}" marker-end="url(#m-open)"/>`);
   d.text(600, 76, "결과 도착 [같은 변경 번호, 소멸·정지·반복, N ≤ 0]", { size: 12, anchor: "middle" });
   transition(d, [calc.bottom(30), [calc.cx + 30, und.cy], und.left()], ["결과 도착", "[같은 변경 번호, 미확정]"], { at: [300, und.cy - 30] });
-  transition(d, [left.right(), reach.left()], ["[N ≤ 0]"], { at: [735, left.cy - 8] });
-  transition(d, [[left.cx - 60, left.y + left.h], [left.cx - 60, left.y + left.h + 40], [left.cx - 10, left.y + left.h + 40], [left.cx - 10, left.y + left.h]], ["세대 진행 / N ← N − 1"], { at: [left.cx - 35, left.y + left.h + 58] });
+  transition(d, [left.right(), reach.left()], ["세대 진행", "[N = 1]"], { at: [735, left.cy - 22] });
+  transition(d, [[left.cx - 60, left.y + left.h], [left.cx - 60, left.y + left.h + 40], [left.cx - 10, left.y + left.h + 40], [left.cx - 10, left.y + left.h]], ["세대 진행 [N > 1] / N ← N − 1"], { at: [left.cx - 35, left.y + left.h + 58] });
   transition(d, [[calc.cx - 50, calc.y + calc.h], [calc.cx - 50, calc.y + calc.h + 40], [calc.cx - 10, calc.y + calc.h + 40], [calc.cx - 10, calc.y + calc.h]], ["결과 도착 [다른 변경 번호]", "/ 버린다"], { at: [calc.cx - 30, calc.y + calc.h + 58] });
   // 어느 하위 상태에서든 일어나는 전이: 상위 상태의 경계에서 나와 계산 중으로
   transition(d, [[330, 470], [330, 515], [36, 515], [36, calc.cy + 12], [calc.x, calc.cy + 12]], ["클릭 · Clear · Load · 규칙 변경 / 변경 번호 + 1   (어느 상태에서든)"], { at: [420, 540] });
